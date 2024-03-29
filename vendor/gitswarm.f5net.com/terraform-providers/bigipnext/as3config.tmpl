@@ -1,0 +1,38 @@
+{
+    "class": "AS3",
+    "action": "deploy",
+    "declaration": {
+        "class": "ADC",
+        "schemaVersion": "3.45.0",
+        "id": "example-declaration-01",
+        "label": "Sample 1",
+        "remark": "Simple HTTP application with round robin pool",
+        "target": {
+            "address": "10.144.72.114"
+        }{{ range . }},
+        "{{ .TenantName }}": {
+            "class": "Tenant",
+            "{{ .AppName }}": {
+                "class": "Application",
+                "template": "http",
+                "serviceMain": {
+                    "class": "Service_HTTP",
+                    "virtualAddresses": [{{range .VirtualAddresses}}"{{ . }}"{{ end }}],
+                    "pool": "{{ .PoolName }}"
+                },
+                "{{ .PoolName }}": {
+                    "class": "Pool",
+                    "monitors": [
+                        "http"
+                    ],
+                    "members": [
+                        {
+                            "servicePort": 80,
+                            "serverAddresses": [{{range .ServerAddresses}}"{{ . }}"{{end}}]
+                        }
+                    ]
+                }
+            }
+        }{{ end }}
+    }
+}
