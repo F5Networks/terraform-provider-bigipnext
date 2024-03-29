@@ -1,0 +1,26 @@
+# You can copy and paste this template into a new `.gitlab-ci.yml` file.
+# You should not add this template to an existing `.gitlab-ci.yml` file by using the `include:` keyword.
+#
+# To contribute improvements to CI/CD templates, please follow the Development guide at:
+# https://docs.gitlab.com/ee/development/cicd/templates.html
+# This specific template is located at:
+# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Go.gitlab-ci.yml
+variables:
+  DOCKER_HUB_PROXY: "artifactory.f5net.com/dockerhub-remote"
+  PKG_NAME: bigipnext
+
+image: "${DOCKER_HUB_PROXY}/golang:1.20.5"
+
+stages:
+  - test
+format:
+  stage: test
+  timeout: 4 hours 00 minutes
+  script:
+    - go fmt $(go list ./... | grep -v /vendor/)
+    - go vet $(go list ./... | grep -v /vendor/)
+    - go clean -testcache
+    - curl -fv --retry 1 --connect-timeout 5 -L https://artifactory.f5net.com/artifactory/f5-bigiq-mgmt-generic/images/releases/20.1.0/0.8.112/upgrade-bundle/BIG-IP-Next-CentralManager-20.1.0-0.8.112-Update.tgz -o "BIG-IP-Next-CentralManager-20.1.0-0.8.112-Update.tgz"
+    - pwd
+    - ls -ltr
+    # - go test -v -run=TestCMUploadMultipartFormData -timeout 240m
