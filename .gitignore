@@ -4,6 +4,7 @@
 example.tf
 terraform.tfplan
 terraform.tfstate
+.terraform.lock.hcl
 *.tfvars
 vendor/.DS_Store
 terraform-provider-bigipnext

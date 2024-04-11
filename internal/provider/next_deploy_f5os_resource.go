@@ -53,6 +53,7 @@ type F5OSInstanceModel struct {
 	MgmtUser             types.String `tfsdk:"management_user"`
 	MgmtPassword         types.String `tfsdk:"management_password"`
 	VlanIDs              types.List   `tfsdk:"vlan_ids"`
+	SlotIDs              types.List   `tfsdk:"slot_ids"`
 	CpuCores             types.Int64  `tfsdk:"cpu_cores"`
 	DiskSize             types.Int64  `tfsdk:"disk_size"`
 	TenantImageName      types.String `tfsdk:"tenant_image_name"`
@@ -119,7 +120,13 @@ func (r *NextDeployF5osResource) Schema(ctx context.Context, req resource.Schema
 						Sensitive:           true,
 					},
 					"vlan_ids": schema.ListAttribute{
-						MarkdownDescription: "List of integers. Specifies on which blades nodes the tenants are deployed.\nRequired for create operations.\nFor single blade platforms like rSeries only the value of 1 should be provided.",
+						MarkdownDescription: "List of vlan ids to be assigned to BIG-IP Next Instance deployed",
+						Optional:            true,
+						Computed:            true,
+						ElementType:         types.Int64Type,
+					},
+					"slot_ids": schema.ListAttribute{
+						MarkdownDescription: "Specifies on which list blades nodes the tenants are deployed.\nRequired for create operations.\nFor single blade platforms like rSeries only the value of 1 should be provided.",
 						Optional:            true,
 						Computed:            true,
 						ElementType:         types.Int64Type,
@@ -189,14 +196,20 @@ func (r *NextDeployF5osResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 	resCfg.ProviderId = types.StringValue(providerID.(string))
-	providerConfig := f5osRseriesConfig(ctx, resCfg)
+	var providerConfig *bigipnextsdk.CMReqDeviceInstance
+	if providerModel.ProviderType.ValueString() == "velos" {
+		providerConfig = f5osVelosConfig(ctx, resCfg)
+	}
+	if providerModel.ProviderType.ValueString() == "rseries" {
+		providerConfig = f5osRseriesConfig(ctx, resCfg)
+	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] Deploy Next Instance:%+v\n", providerConfig.Parameters.Hostname))
 	respData, err := r.client.PostDeviceInstance(providerConfig, int(resCfg.Timeout.ValueInt64()))
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Deploy Instance, got error: %s", err))
 		return
 	}
-	tflog.Info(ctx, fmt.Sprintf("[CREATE] respData ID:%+v\n", respData))
+	tflog.Info(ctx, fmt.Sprintf("[CREATE] respData ID:%+v\n", string(respData)))
 	resCfg.Id = types.StringValue(providerConfig.Parameters.Hostname)
 	resp.Diagnostics.Append(resp.State.Set(ctx, resCfg)...)
 }
@@ -317,6 +330,73 @@ func f5osRseriesConfig(ctx context.Context, data *NextDeployF5osResourceModel) *
 		CpuCores:             int(instanceModel.CpuCores.ValueInt64()),
 		DiskSize:             int(instanceModel.DiskSize.ValueInt64()),
 		VlanIds:              vlanIds,
+	})
+	tflog.Info(ctx, fmt.Sprintf("cmReqDeviceInstance : %+v", cmReqDeviceInstance))
+	return &cmReqDeviceInstance
+}
+
+func f5osVelosConfig(ctx context.Context, data *NextDeployF5osResourceModel) *bigipnextsdk.CMReqDeviceInstance {
+	var deployConfig bigipnextsdk.CMReqDeviceInstance
+	deployConfig.TemplateName = "default-standalone-velos"
+	var providerModel F5OSProviderModel
+	diag := data.F5OSProvider.As(ctx, &providerModel, basetypes.ObjectAsOptions{})
+	if diag.HasError() {
+		tflog.Error(ctx, fmt.Sprintf("F5OSProvider diag Error: %+v", diag.Errors()))
+	}
+	var instanceModel F5OSInstanceModel
+	diag = data.F5OSInstance.As(ctx, &instanceModel, basetypes.ObjectAsOptions{})
+	if diag.HasError() {
+		tflog.Error(ctx, fmt.Sprintf("F5OSInstanceModel diag Error: %+v", diag.Errors()))
+	}
+	var cmReqDeviceInstance bigipnextsdk.CMReqDeviceInstance
+	cmReqDeviceInstance.TemplateName = "default-standalone-velos"
+	cmReqDeviceInstance.Parameters.Hostname = (instanceModel.InstanceHostname).ValueString()
+	cmReqDeviceInstance.Parameters.ManagementAddress = (instanceModel.MgmtAddress).ValueString()
+	cmReqDeviceInstance.Parameters.ManagementNetworkWidth = int((instanceModel.MgmtPrefix).ValueInt64())
+	cmReqDeviceInstance.Parameters.DefaultGateway = (instanceModel.MgmtGateway).ValueString()
+	cmReqDeviceInstance.Parameters.ManagementCredentialsUsername = (instanceModel.MgmtUser).ValueString()
+	cmReqDeviceInstance.Parameters.ManagementCredentialsPassword = (instanceModel.MgmtPassword).ValueString()
+	cmReqDeviceInstance.Parameters.InstanceOneTimePassword = (instanceModel.MgmtPassword).ValueString()
+
+	var vlanIds []int
+	for _, val := range instanceModel.VlanIDs.Elements() {
+		var ss int
+		_ = json.Unmarshal([]byte(val.String()), &ss)
+		vlanIds = append(vlanIds, ss)
+	}
+	var slotIds []int
+	for _, val := range instanceModel.SlotIDs.Elements() {
+		var ss int
+		_ = json.Unmarshal([]byte(val.String()), &ss)
+		slotIds = append(slotIds, ss)
+	}
+	// var dnsServ []string
+	// for _, val := range data.DnsServers.Elements() {
+	// 	var ss string
+	// 	_ = json.Unmarshal([]byte(val.String()), &ss)
+	// 	dnsServ = append(dnsServ, ss)
+	// }
+	// cmReqDeviceInstance.Parameters.DnsServers = dnsServ
+	// var ntpServ []string
+	// for _, val := range data.NtpServers.Elements() {
+	// 	var ss string
+	// 	_ = json.Unmarshal([]byte(val.String()), &ss)
+	// 	ntpServ = append(ntpServ, ss)
+	// }
+	// cmReqDeviceInstance.Parameters.NtpServers = ntpServ
+
+	cmReqDeviceInstance.Parameters.InstantiationProvider = append(cmReqDeviceInstance.Parameters.InstantiationProvider, bigipnextsdk.CMReqInstantiationProvider{
+		Id:   data.ProviderId.ValueString(),
+		Name: providerModel.ProviderName.ValueString(),
+		Type: "velos",
+	})
+	cmReqDeviceInstance.Parameters.VelosProperties = append(cmReqDeviceInstance.Parameters.VelosProperties, bigipnextsdk.CMReqVelosProperties{
+		TenantImageName:      instanceModel.TenantImageName.ValueString(),
+		TenantDeploymentFile: instanceModel.TenantDeploymentFile.ValueString(),
+		CpuCores:             int(instanceModel.CpuCores.ValueInt64()),
+		DiskSize:             int(instanceModel.DiskSize.ValueInt64()),
+		VlanIds:              vlanIds,
+		SlotIds:              slotIds,
 	})
 	tflog.Info(ctx, fmt.Sprintf("cmReqDeviceInstance : %+v", cmReqDeviceInstance))
 	return &cmReqDeviceInstance

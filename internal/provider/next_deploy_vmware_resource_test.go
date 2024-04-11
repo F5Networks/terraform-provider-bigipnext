@@ -226,7 +226,7 @@ func TestUnitNextDeployVmwareResourceTC5(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `{"_embedded":{"devices":[{"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+infraanovm01/37021437-2b5f-4e44-9f5e-6ea9838c5f7e"}},"address":"10.146.194.171","certificate_validated":"2024-03-07T06:56:51.915056Z","certificate_validity":false,"hostname":"infraanovm01","id":"37021437-2b5f-4e44-9f5e-6ea9838c5f7e","mode":"STANDALONE","platform_name":"VMware","platform_type":"VE","port":5443,"version":"20.1.0-2.279.0+0.0.75"}]},"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+infraanovm01"}},"count":1,"total":1}`)
 	})
-	mux.HandleFunc("/api/device/v1/inventory/37021437-2b5f-4e44-9f5e-6ea9838c5f7e", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v1/spaces/default/instances/37021437-2b5f-4e44-9f5e-6ea9838c5f7e", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `{"_links":{"self":{"href":"/v1/deletion-tasks/02752890-5660-450c-ace9-b8e0a86a15ad"}},"path":"/v1/deletion-tasks/02752890-5660-450c-ace9-b8e0a86a15ad"}`)
 	})

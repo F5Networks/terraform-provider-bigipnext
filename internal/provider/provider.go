@@ -178,9 +178,7 @@ func (p *BigipNextCMProvider) Configure(ctx context.Context, req provider.Config
 func (p *BigipNextCMProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewNextCMAS3DeployResource,
-		NewNextCMFastHttpResource,
 		NewNextCMBackupRestoreResource,
-		NewNextCMFastTemplateResource,
 		NewNextCMCertificateResource,
 		NewNextCMImportCertificateResource,
 		NewNextCMDeviceProviderResource,

@@ -38,10 +38,13 @@ const (
 	uriCertificate       = "/api/v1/spaces/default/certificates"
 	uriCMUpgradeTask     = "/upgrade-manager/v1/upgrade-tasks"
 	uriAS3Root           = "/api/v1/spaces/default/appsvcs"
+	uriDiscoverInstance  = "/v1/spaces/default/instances"
 	// uriCertificateUpdate = "/api/certificate/v1/certificates"
 	uriGlobalResiliency    = "/api/v1/spaces/default/gslb/gr-groups"
 	uriGetGlobalResiliency = "/v1/spaces/default/gslb/gr-groups"
 	uriGetAlert            = "/alert/v1/alerts/?limit=1&sort=-start_time&filter=source%20eq%20%27DNS%27%20and%20status%20eq%20%27ACTIVE%27&select=summary"
+	uriWafReport           = "/api/v1/spaces/default/security/waf/reports"
+	uriGetWafReport        = "/v1/spaces/default/security/waf/reports"
 )
 
 // BIG IP Next CM Config Request structure
@@ -743,6 +746,26 @@ type Instance struct {
 	GroupSyncAddress   string `json:"group_sync_address,omitempty"`
 }
 
+type CMWAFReportRequestDraft struct {
+	Name            string `json:"name,omitempty"`
+	Description     string `json:"description,omitempty"`
+	TimeFrameInDays int    `json:"time_frame_in_days,omitempty"`
+	TopLevel        int    `json:"top_level,omitempty"`
+	RequestType     string `json:"request_type,omitempty"`
+	UserDefined     string `json:"user_defined,omitempty"`
+	CreatedBy       string `json:"created_by,omitempty"`
+	Scope           struct {
+		Entity string   `json:"entity,omitempty"`
+		All    bool     `json:"all"`
+		Names  []string `json:"names,omitempty"`
+	} `json:"scope,omitempty"`
+	Categories []Category `json:"categories,omitempty"`
+	Id         string     `json:"id,omitempty"`
+}
+
+type Category struct {
+	Name string `json:"name,omitempty"`
+}
 type FastDeployVirtual struct {
 	VirtualName    string `json:"virtualName,omitempty"`
 	VirtualAddress string `json:"virtualAddress,omitempty"`
@@ -932,6 +955,84 @@ func (p *BigipNextCM) GetAlertMessage() error {
 	summary := respString["_embedded"].(map[string]interface{})["alerts"].([]interface{})[0].(map[string]interface{})["summary"].(string)
 	f5osLogger.Info("[GetAlertMessage]", "Summary::", hclog.Fmt("%+v", string(summary)))
 	return fmt.Errorf("task failed, summary : %+v ", summary)
+}
+
+// Create a WAF Security Report
+// /api/v1/spaces/default/security/waf/reports
+func (p *BigipNextCM) PostWAFReport(op string, config *CMWAFReportRequestDraft) (string, string, bool, error) {
+	wafURL := fmt.Sprintf("%s%s", p.Host, uriWafReport)
+	if op == "PUT" {
+		wafURL = fmt.Sprintf("%s%s/%s", p.Host, uriWafReport, config.Id)
+	}
+	f5osLogger.Info("[PostWAFReport]", "URI Path", wafURL)
+	f5osLogger.Info("[PostWAFReport]", "Config", hclog.Fmt("%+v", config))
+
+	body, err := json.Marshal(config)
+
+	if err != nil {
+		return "", "", false, err
+	}
+	f5osLogger.Info("[PostWAFReport]", "Body", hclog.Fmt("%+v", string(body)))
+	respData, err := p.doCMRequest(op, wafURL, body)
+	if err != nil {
+		return "", "", false, err
+	}
+	f5osLogger.Info("[PostWAFReport]", "Data::", hclog.Fmt("%+v", string(respData)))
+
+	respString := make(map[string]interface{})
+	err = json.Unmarshal(respData, &respString)
+	if err != nil {
+		return "", "", false, err
+	}
+	f5osLogger.Info("[PostWAFReport]", "Task ID", hclog.Fmt("%+v", respString["id"].(string)))
+
+	wafData, err := p.GetWAFReportDetails(respString["id"].(string))
+	if err != nil {
+		return "", "", false, err
+	}
+
+	return respString["id"].(string), wafData.(map[string]interface{})["created_by"].(string), wafData.(map[string]interface{})["user_defined"].(bool), nil
+
+}
+
+// GET request to get the details of the WAF Security Report
+//
+//	/api/v1/spaces/default/security/waf/reports{id}
+func (p *BigipNextCM) GetWAFReportDetails(id string) (interface{}, error) {
+	getWAFReportDetailsUrl := fmt.Sprintf("%s/%s", uriGetWafReport, id)
+	f5osLogger.Info("[GetWAFReportDetails]", "GetWAFReportDetails Url", getWAFReportDetailsUrl)
+
+	respData, err := p.GetCMRequest(getWAFReportDetailsUrl)
+	if err != nil {
+		return "", err
+	}
+	f5osLogger.Info("[GetWAFReportDetails]", "Data::", hclog.Fmt("%+v", string(respData)))
+
+	var respInfo map[string]interface{}
+	err = json.Unmarshal(respData, &respInfo)
+	if err != nil {
+		return "", err
+	}
+	f5osLogger.Info("[GetWAFReportDetails]", "Resp Message", hclog.Fmt("%+v", respInfo))
+
+	return respInfo, nil
+}
+
+// DELETE request to delete the WAF Security Report
+//
+//	/api/v1/spaces/default/security/waf/reports{id}
+func (p *BigipNextCM) DeleteWAFReport(id string) error {
+
+	deleteWAFReportUrl := fmt.Sprintf("%s%s/%s", p.Host, uriWafReport, id)
+	f5osLogger.Info("[DeleteWAFReport]", "URI Path", deleteWAFReportUrl)
+
+	_, err := p.doCMRequest("DELETE", deleteWAFReportUrl, nil)
+	if err != nil {
+		return err
+	}
+
+	f5osLogger.Info("[DeleteWAFReport]", "WAF Report Deleted Successfully")
+	return nil
 }
 
 // mgmt/shared/fast/appsvcs/ac6b8145-c1bf-4140-b2cb-4358cc742931/deployments
@@ -1206,6 +1307,146 @@ func (p *BigipNextCM) DeleteAS3DeploymentTask(docID string) error {
 		return err
 	}
 	f5osLogger.Info("[DeleteAS3DeploymentTask]", "Data::", hclog.Fmt("%+v", string(respData)))
+	return nil
+}
+
+type DiscoverInstanceRequest struct {
+	Address            string `json:"address,omitempty"`
+	Port               int    `json:"port,omitempty"`
+	DeviceUser         string `json:"device_user,omitempty"`
+	DevicePassword     string `json:"device_password,omitempty"`
+	ManagementUser     string `json:"management_user,omitempty"`
+	ManagementPassword string `json:"management_password,omitempty"`
+}
+
+// create POST request to Add instance to CM
+func (p *BigipNextCM) DiscoverInstance(config *DiscoverInstanceRequest) ([]byte, error) {
+	if config.DevicePassword == "admin" {
+		err := config.resetDevicePassword()
+		if err != nil {
+			return nil, err
+		}
+		f5osLogger.Info("[DiscoverInstance]", "admin password reset successfully")
+		time.Sleep(2 * time.Second)
+		config.DevicePassword = config.ManagementPassword
+	}
+	body, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	respData, err := p.PostCMRequest(uriDiscoverInstance, body)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[DiscoverInstance]", "Data::", hclog.Fmt("%+v", string(respData)))
+	respString := make(map[string]interface{})
+	err = json.Unmarshal(respData, &respString)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[DiscoverInstance]", "Task Path", hclog.Fmt("%+v", respString["path"].(string)))
+	pathList := strings.Split(respString["path"].(string), "/")
+
+	err = p.acceptUntrustedCertificate(pathList[len(pathList)-1])
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[getDiscoverInstanceTaskStatus]", "Data::", hclog.Fmt("%+v", string(respData)))
+	respData, err = p.getDiscoverInstanceTaskStatus(pathList[len(pathList)-1])
+	if err != nil {
+		return nil, err
+	}
+	return respData, nil
+}
+
+// Accept untrusted certificate for the device
+func (p *BigipNextCM) acceptUntrustedCertificate(taskid string) error {
+	acceptUntrust := true
+	unTrust := make(map[string]interface{})
+	if acceptUntrust {
+		unTrust["is_user_accepted_untrusted_cert"] = true
+	}
+	body, err := json.Marshal(unTrust)
+	if err != nil {
+		return err
+	}
+	getTaskUrl := fmt.Sprintf("%s/api%s%s/%s", p.Host, uriDiscoverInstance, "/discovery-tasks", taskid)
+	respData, err := p.doCMRequest("PATCH", getTaskUrl, body)
+	if err != nil {
+		return err
+	}
+	f5osLogger.Info("[AcceptUntrustedCertificate]", "Data::", hclog.Fmt("%+v", string(respData)))
+	return nil
+}
+
+// Check the status of the discovery task
+func (p *BigipNextCM) getDiscoverInstanceTaskStatus(taskid string) ([]byte, error) {
+	getTaskUrl := fmt.Sprintf("%s%s/%s", uriDiscoverInstance, "/discovery-tasks", taskid)
+	f5osLogger.Info("[getDiscoverInstanceTaskStatus]", "getTaskUrl", getTaskUrl)
+	var respInfo map[string]interface{}
+	timeout := 360 * time.Second
+	endtime := time.Now().Add(timeout)
+	for time.Now().Before(endtime) {
+		respData, err := p.GetCMRequest(getTaskUrl)
+		if err != nil {
+			return nil, err
+		}
+		f5osLogger.Info("[getDiscoverInstanceTaskStatus]", "Data::", hclog.Fmt("%+v", string(respData)))
+		// {"_links":{"self":{"href":"/api/v1/spaces/default/instances/discovery-tasks/2e718d16-66af-4a11-960a-cd2dfcf48229"}},"address":"10.145.71.115","created":"2024-04-05T17:43:27.382035Z","device_group":"default","device_user":"admin","fingerprint":"771caf5eaf0718911c4da754fd7bc998797066992c6ebb6129f5dcf58528aba4","id":"2e718d16-66af-4a11-960a-cd2dfcf48229","port":5443,"state":"discoveryWaitForUserInput","status":"running"}
+		err = json.Unmarshal(respData, &respInfo)
+		if err != nil {
+			return nil, err
+		}
+		if respInfo["status"].(string) == "completed" {
+			return []byte(respInfo["discovered_device_id"].(string)), nil
+		}
+		if respInfo["status"].(string) == "failed" {
+			return respData, fmt.Errorf("discovery-tasks failed with :%+v", respInfo["failure_reason"].(string))
+		}
+		time.Sleep(10 * time.Second)
+	}
+	return []byte(""), fmt.Errorf("task status is still in :%+v within timeout period of:%+v", respInfo["status"].(string), timeout)
+}
+
+// reset the device password
+func (d *DiscoverInstanceRequest) resetDevicePassword() error {
+	urlString := fmt.Sprintf("https://%s:%d%s", d.Address, d.Port, "/api/v1/me")
+	f5osLogger.Info("[resetDevicePassword]", "getTaskUrl", urlString)
+	resetPassword := make(map[string]interface{})
+	resetPassword["currentPassword"] = d.DevicePassword
+	resetPassword["newPassword"] = d.ManagementPassword
+	body, err := json.Marshal(resetPassword)
+	if err != nil {
+		return err
+	}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+	}
+	client := &http.Client{
+		Transport: tr,
+	}
+	method := "PUT"
+	f5osLogger.Info("[resetDevicePassword]", "URL", hclog.Fmt("%+v", urlString))
+	req, err := http.NewRequest(method, urlString, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", contentTypeHeader)
+	req.SetBasicAuth(d.DeviceUser, string(d.DevicePassword))
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	bodyResp, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode != 204 {
+		return fmt.Errorf("error message: %+v (Body:%+v)", res.Status, string(bodyResp))
+	}
 	return nil
 }
 
@@ -1723,14 +1964,34 @@ func (p *BigipNextCM) GetDeviceIdByHostname(deviceHostname string) (deviceId *st
 	return nil, fmt.Errorf("the requested device:%s, was not found", deviceHostname)
 }
 
+func (p *BigipNextCM) GetDeviceInfoByID(deviceId string) (interface{}, error) {
+	// deviceUrl := fmt.Sprintf("%s/%s", uriInventory, deviceId)
+	deviceUrl := fmt.Sprintf("%s/%s", uriDiscoverInstance, deviceId)
+	url := fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, deviceUrl)
+	f5osLogger.Info("[GetDeviceInfoByID]", "Request path", hclog.Fmt("%+v", url))
+	dataResource, err := p.doCMRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[GetDeviceInfoByID]", "Data::", hclog.Fmt("%+v", string(dataResource)))
+	var deviceInfo interface{}
+	err = json.Unmarshal(dataResource, &deviceInfo)
+	if err != nil {
+		return nil, err
+	}
+	return deviceInfo, nil
+}
+
 // delete device from CM
 func (p *BigipNextCM) DeleteDevice(deviceId string) error {
-	deviceUrl := fmt.Sprintf("%s/%s", uriInventory, deviceId)
+	// deviceUrl := fmt.Sprintf("%s/%s", uriInventory, deviceId)
+	deviceUrl := fmt.Sprintf("%s/%s", uriDiscoverInstance, deviceId)
 	url := fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, deviceUrl)
 	f5osLogger.Info("[DeleteDevice]", "Request path", hclog.Fmt("%+v", url))
 	//{"save_backup":false}
 	var data = []byte(`{"save_backup":false}`)
 	respData, err := p.doCMRequest("DELETE", url, data)
+	// respData, err := p.DeleteCMRequest("DELETE", deviceUrl, data)
 	if err != nil {
 		return err
 	}
@@ -2034,24 +2295,6 @@ func (p *BigipNextCM) GetDeviceProvider(providerId, providerType string) (*Devic
 	return &providerResp, nil
 }
 
-//
-//func (p *BigipNextCM) AddVsphereProvider(config *ProviderRequest) ([]byte, error) {
-//	providerConfig := &DeviceProvider{}
-//	providerConfig.Name = config.ProviderName
-//	providerConfig.Type = "VSPHERE"
-//	providerConfig.Connection.Host = config.Hostname
-//	providerConfig.Connection.Authentication.Type = "basic"
-//	providerConfig.Connection.Authentication.Username = config.Username
-//	providerConfig.Connection.Authentication.Password = config.Password
-//	f5osLogger.Info("[AddVsphereProvider]", "Config::", hclog.Fmt("%+v", providerConfig))
-//	respData, err := p.PostDeviceProvider(providerConfig)
-//	if err != nil {
-//		return nil, err
-//	}
-//	f5osLogger.Info("[AddVsphereProvider]", "Response::", hclog.Fmt("%+v", string(respData)))
-//	return respData, nil
-//}
-
 // https://10.145.75.237/api/device/v1/providers/vsphere/85bc71c3-0bfc-4b28-bb86-13f7e1c1d7af
 // Create function to delete device provider using provider id
 func (p *BigipNextCM) DeleteDeviceProvider(providerId, providerType string) ([]byte, error) {
@@ -2236,6 +2479,15 @@ type CMReqRseriesProperties struct {
 	// Hostname                string `json:"hostname"`
 }
 
+type CMReqVelosProperties struct {
+	TenantImageName      string `json:"tenant_image_name"`
+	TenantDeploymentFile string `json:"tenant_deployment_file"`
+	VlanIds              []int  `json:"vlan_ids"`
+	SlotIds              []int  `json:"slot_ids"`
+	DiskSize             int    `json:"disk_size"`
+	CpuCores             int    `json:"cpu_cores"`
+}
+
 type CMReqDeviceInstance struct {
 	TemplateName string `json:"template_name,omitempty"`
 	Parameters   struct {
@@ -2243,6 +2495,7 @@ type CMReqDeviceInstance struct {
 		VSphereProperties             []CMReqVsphereProperties             `json:"vSphere_properties,omitempty"`
 		VsphereNetworkAdapterSettings []CMReqVsphereNetworkAdapterSettings `json:"vsphere_network_adapter_settings,omitempty"`
 		RseriesProperties             []CMReqRseriesProperties             `json:"rseries_properties,omitempty"`
+		VelosProperties               []CMReqVelosProperties               `json:"velos_properties,omitempty"`
 		DnsServers                    []string                             `json:"dns_servers,omitempty"`
 		NtpServers                    []string                             `json:"ntp_servers,omitempty"`
 		ManagementAddress             string                               `json:"management_address,omitempty"`
@@ -2353,8 +2606,8 @@ func (p *BigipNextCM) GetDeviceInstanceTaskStatus(taskID string, timeOut int) (m
 	taskData := make(map[string]interface{})
 	instanceUrl := fmt.Sprintf("%s%s", "/device/v1/instances/tasks/", taskID)
 	f5osLogger.Debug("[GetDeviceInstanceTaskStatus]", "URI Path", instanceUrl)
-	var timeout time.Duration
-	timeout = time.Duration(timeOut) * time.Second
+	// var timeout time.Duration
+	timeout := time.Duration(timeOut) * time.Second
 	endtime := time.Now().Add(timeout)
 	for time.Now().Before(endtime) {
 		respData, err := p.GetCMRequest(instanceUrl)
@@ -2375,13 +2628,13 @@ func (p *BigipNextCM) GetDeviceInstanceTaskStatus(taskID string, timeOut int) (m
 		inVal := timeOut / 10
 		time.Sleep(time.Duration(inVal) * time.Second)
 	}
-	return nil, fmt.Errorf("Task Status is still in :%+v within timeout period of:%+v", taskData["status"], timeout)
+	return nil, fmt.Errorf("task Status is still in :%+v within timeout period of:%+v", taskData["status"], timeout)
 }
 
-// convert a string to byte array
-func stringToByteArray(str string) []byte {
-	return []byte(str)
-}
+// // convert a string to byte array
+// func stringToByteArray(str string) []byte {
+// 	return []byte(str)
+// }
 
 func (p *BigipNextCM) GetDeviceProviderIDByHostname(hostname string) (interface{}, error) {
 	uriProviders := "/device/v1/providers"
@@ -2400,7 +2653,7 @@ func (p *BigipNextCM) GetDeviceProviderIDByHostname(hostname string) (interface{
 	if len(providerResp) == 1 && providerResp[0].(map[string]interface{})["provider_name"].(string) == hostname {
 		return providerResp[0].(map[string]interface{})["provider_id"].(string), nil
 	}
-	return nil, fmt.Errorf("Failed to get ID for provider: %+v", hostname)
+	return nil, fmt.Errorf("failed to get ID for provider: %+v", hostname)
 }
 
 // https://10.145.75.237/api/llm/license/a2064013-659d-4de0-8c22-773d21414885/status
