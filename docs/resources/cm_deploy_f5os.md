@@ -76,6 +76,7 @@ Optional:
 
 - `cpu_cores` (Number) The number of virtual processor cores to configure on the BIG-IP-Next Instance.Default is `4`.
 - `disk_size` (Number) The amount of disk size in GigBytes to configure on the BIG-IP-Next Instance.Default is `30`.
-- `vlan_ids` (List of Number) List of integers. Specifies on which blades nodes the tenants are deployed.
+- `slot_ids` (List of Number) Specifies on which list blades nodes the tenants are deployed.
 Required for create operations.
 For single blade platforms like rSeries only the value of 1 should be provided.
+- `vlan_ids` (List of Number) List of vlan ids to be assigned to BIG-IP Next Instance deployed
