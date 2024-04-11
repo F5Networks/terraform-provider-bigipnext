@@ -25,7 +25,7 @@ provider "bigipnext" {
 
 ### Optional
 
-- `host` (String) URI for BigipNext Device. May also be provided via `BIGIPNEXT_HOST` environment variable.
-- `password` (String, Sensitive) Password for BigipNext Device. May also be provided via `BIGIPNEXT_PASSWORD` environment variable.
+- `host` (String) URI for BIG-IP Next Central Manager Device. May also be provided via `BIGIPNEXT_HOST` environment variable.
+- `password` (String, Sensitive) Password for BIG-IP Next Central Manager Device. May also be provided via `BIGIPNEXT_PASSWORD` environment variable.
 - `port` (Number) Port Number to be used to make API calls to HOST
-- `username` (String) Username for BigipNext Device. May also be provided via `BIGIPNEXT_USERNAME` environment variable.
+- `username` (String) Username for BIG-IP Next Central Manager Device. May also be provided via `BIGIPNEXT_USERNAME` environment variable.

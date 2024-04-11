@@ -45,15 +45,15 @@ func (p *BigipNextCMProvider) Schema(ctx context.Context, req provider.SchemaReq
 		Description: "Provider plugin to interact with BIG-IP Next Central Manager(CM) Using OpenAPI",
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
-				MarkdownDescription: "URI for BigipNext Device. May also be provided via `BIGIPNEXT_HOST` environment variable.",
+				MarkdownDescription: "URI for BIG-IP Next Central Manager Device. May also be provided via `BIGIPNEXT_HOST` environment variable.",
 				Optional:            true,
 			},
 			"username": schema.StringAttribute{
-				MarkdownDescription: "Username for BigipNext Device. May also be provided via `BIGIPNEXT_USERNAME` environment variable.",
+				MarkdownDescription: "Username for BIG-IP Next Central Manager Device. May also be provided via `BIGIPNEXT_USERNAME` environment variable.",
 				Optional:            true,
 			},
 			"password": schema.StringAttribute{
-				MarkdownDescription: "Password for BigipNext Device. May also be provided via `BIGIPNEXT_PASSWORD` environment variable.",
+				MarkdownDescription: "Password for BIG-IP Next Central Manager Device. May also be provided via `BIGIPNEXT_PASSWORD` environment variable.",
 				Optional:            true,
 				Sensitive:           true,
 			},
