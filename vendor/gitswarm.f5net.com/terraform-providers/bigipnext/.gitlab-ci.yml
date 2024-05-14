@@ -20,7 +20,7 @@ format:
     - go fmt $(go list ./... | grep -v /vendor/)
     - go vet $(go list ./... | grep -v /vendor/)
     - go clean -testcache
-    - curl -fv --retry 1 --connect-timeout 5 -L https://artifactory.f5net.com/artifactory/f5-bigiq-mgmt-generic/images/releases/20.1.0/0.8.112/upgrade-bundle/BIG-IP-Next-CentralManager-20.1.0-0.8.112-Update.tgz -o "BIG-IP-Next-CentralManager-20.1.0-0.8.112-Update.tgz"
+    - curl -fv --retry 1 --connect-timeout 5 -L "https://sea.artifactory.f5net.com/ui/native/f5-bigiq-mgmt-generic/images/releases/20.2.0/0.5.41/upgrade-bundle/BIG-IP-Next-CentralManager-20.2.0-0.5.41-Update.tgz" -o "BIG-IP-Next-CentralManager-20.2.0-0.5.41-Update.tgz"
     - pwd
     - ls -ltr
     # - go test -v -run=TestCMUploadMultipartFormData -timeout 240m
