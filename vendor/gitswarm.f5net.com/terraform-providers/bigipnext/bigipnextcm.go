@@ -15,6 +15,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -43,8 +44,10 @@ const (
 	uriGlobalResiliency    = "/api/v1/spaces/default/gslb/gr-groups"
 	uriGetGlobalResiliency = "/v1/spaces/default/gslb/gr-groups"
 	uriGetAlert            = "/alert/v1/alerts/?limit=1&sort=-start_time&filter=source%20eq%20%27DNS%27%20and%20status%20eq%20%27ACTIVE%27&select=summary"
-	uriWafReport           = "/api/v1/spaces/default/security/waf/reports"
-	uriGetWafReport        = "/v1/spaces/default/security/waf/reports"
+	uriWafReport           = "/v1/spaces/default/security/waf/reports"
+	// uriGetWafReport        = "/v1/spaces/default/security/waf/reports"
+	uriWafPolicy    = "/api/v1/spaces/default/security/waf-policies"
+	uriGetWafPolicy = "/v1/spaces/default/security/waf-policies"
 )
 
 // BIG IP Next CM Config Request structure
@@ -960,15 +963,13 @@ func (p *BigipNextCM) GetAlertMessage() error {
 // Create a WAF Security Report
 // /api/v1/spaces/default/security/waf/reports
 func (p *BigipNextCM) PostWAFReport(op string, config *CMWAFReportRequestDraft) (string, string, bool, error) {
-	wafURL := fmt.Sprintf("%s%s", p.Host, uriWafReport)
+	wafURL := fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, uriWafReport)
 	if op == "PUT" {
-		wafURL = fmt.Sprintf("%s%s/%s", p.Host, uriWafReport, config.Id)
+		wafURL = fmt.Sprintf("%s%s%s/%s", p.Host, uriCMRoot, uriWafReport, config.Id)
 	}
 	f5osLogger.Info("[PostWAFReport]", "URI Path", wafURL)
 	f5osLogger.Info("[PostWAFReport]", "Config", hclog.Fmt("%+v", config))
-
 	body, err := json.Marshal(config)
-
 	if err != nil {
 		return "", "", false, err
 	}
@@ -978,19 +979,16 @@ func (p *BigipNextCM) PostWAFReport(op string, config *CMWAFReportRequestDraft) 
 		return "", "", false, err
 	}
 	f5osLogger.Info("[PostWAFReport]", "Data::", hclog.Fmt("%+v", string(respData)))
-
 	respString := make(map[string]interface{})
 	err = json.Unmarshal(respData, &respString)
 	if err != nil {
 		return "", "", false, err
 	}
 	f5osLogger.Info("[PostWAFReport]", "Task ID", hclog.Fmt("%+v", respString["id"].(string)))
-
 	wafData, err := p.GetWAFReportDetails(respString["id"].(string))
 	if err != nil {
 		return "", "", false, err
 	}
-
 	return respString["id"].(string), wafData.(map[string]interface{})["created_by"].(string), wafData.(map[string]interface{})["user_defined"].(bool), nil
 
 }
@@ -999,7 +997,7 @@ func (p *BigipNextCM) PostWAFReport(op string, config *CMWAFReportRequestDraft) 
 //
 //	/api/v1/spaces/default/security/waf/reports{id}
 func (p *BigipNextCM) GetWAFReportDetails(id string) (interface{}, error) {
-	getWAFReportDetailsUrl := fmt.Sprintf("%s/%s", uriGetWafReport, id)
+	getWAFReportDetailsUrl := fmt.Sprintf("%s/%s", uriWafReport, id)
 	f5osLogger.Info("[GetWAFReportDetails]", "GetWAFReportDetails Url", getWAFReportDetailsUrl)
 
 	respData, err := p.GetCMRequest(getWAFReportDetailsUrl)
@@ -1023,7 +1021,7 @@ func (p *BigipNextCM) GetWAFReportDetails(id string) (interface{}, error) {
 //	/api/v1/spaces/default/security/waf/reports{id}
 func (p *BigipNextCM) DeleteWAFReport(id string) error {
 
-	deleteWAFReportUrl := fmt.Sprintf("%s%s/%s", p.Host, uriWafReport, id)
+	deleteWAFReportUrl := fmt.Sprintf("%s%s%s/%s", p.Host, uriCMRoot, uriWafReport, id)
 	f5osLogger.Info("[DeleteWAFReport]", "URI Path", deleteWAFReportUrl)
 
 	_, err := p.doCMRequest("DELETE", deleteWAFReportUrl, nil)
@@ -1034,6 +1032,132 @@ func (p *BigipNextCM) DeleteWAFReport(id string) error {
 	f5osLogger.Info("[DeleteWAFReport]", "WAF Report Deleted Successfully")
 	return nil
 }
+
+type CMWAFPolicyRequestDraft struct {
+	Name                string   `json:"name,omitempty"`
+	Description         string   `json:"description,omitempty"`
+	Tags                []string `json:"tags,omitempty"`
+	EnforecementMode    string   `json:"enforcement_mode,omitempty"`
+	ApplicationLanguage string   `json:"application_language,omitempty"`
+	TemplateName        string   `json:"template_name,omitempty"`
+	Declaration         struct {
+		Policy struct {
+			Name        string `json:"name,omitempty"`
+			Description string `json:"description,omitempty"`
+			Template    struct {
+				Name string `json:"name,omitempty"`
+			} `json:"template,omitempty"`
+			BotDefense struct {
+				Settings struct {
+					IsEnabled bool `json:"isEnabled"`
+				} `json:"settings"`
+			} `json:"bot-defense"`
+			IpIntelligence struct {
+				Enabled bool `json:"enabled"`
+			} `json:"ip-intelligence"`
+			DosProtection struct {
+				Enabled bool `json:"enabled"`
+			} `json:"dos-protection"`
+			BlockingSettings struct {
+				Violations []Violation `json:"violations"`
+			} `json:"blocking-settings"`
+		} `json:"policy"`
+	} `json:"declaration"`
+	Id string `json:"id,omitempty"`
+}
+
+type Violation struct {
+	Alarm       bool   `json:"alarm"`
+	Block       bool   `json:"block"`
+	Description string `json:"description,omitempty"`
+	Name        string `json:"name,omitempty"`
+}
+
+// Create a WAF Security Policy
+// /api/v1/spaces/default/security/waf-policies
+func (p *BigipNextCM) PostWAFPolicy(op string, config *CMWAFPolicyRequestDraft) (string, error) {
+	wafURL := fmt.Sprintf("%s%s", p.Host, uriWafPolicy)
+	if op == "PUT" {
+		wafURL = fmt.Sprintf("%s%s/%s", p.Host, uriWafPolicy, config.Id)
+	}
+	f5osLogger.Info("[PostWAFPolicy]", "URI Path", wafURL)
+	f5osLogger.Info("[PostWAFPolicy]", "Config", hclog.Fmt("%+v", config))
+
+	body, err := json.Marshal(config)
+
+	if err != nil {
+		return "", err
+	}
+	f5osLogger.Info("[PostWAFPolicy]", "Body", hclog.Fmt("%+v", string(body)))
+	respData, err := p.doCMRequest(op, wafURL, body)
+	if err != nil {
+		return "", err
+	}
+	f5osLogger.Info("[PostWAFPolicy]", "Data::", hclog.Fmt("%+v", string(respData)))
+
+	respString := make(map[string]interface{})
+	err = json.Unmarshal(respData, &respString)
+	if err != nil {
+		return "", err
+	}
+	f5osLogger.Info("[PostWAFPolicy]", "Task ID", hclog.Fmt("%+v", respString["id"].(string)))
+
+	return respString["id"].(string), nil
+}
+
+// GET request to get the details of the WAF Policy
+//
+//	/api/v1/spaces/default/security/waf-policies/{id}
+func (p *BigipNextCM) GetWAFPolicyDetails(id string) (interface{}, error) {
+	getWAFPolicyDetailsUrl := fmt.Sprintf("%s/%s", uriGetWafPolicy, id)
+	f5osLogger.Info("[GetWAFPolicyDetails]", "GetWAFPolicyDetails Url", getWAFPolicyDetailsUrl)
+	respData, err := p.GetCMRequest(getWAFPolicyDetailsUrl)
+	if err != nil {
+		return "", err
+	}
+	// f5osLogger.Info("[GetWAFPolicyDetails]", "Data::", hclog.Fmt("%+v", string(respData)))
+	var respInfo map[string]interface{}
+	err = json.Unmarshal(respData, &respInfo)
+	if err != nil {
+		return "", err
+	}
+	return respInfo, nil
+}
+
+// DELETE request to delete the WAF Security Policy
+//
+//	/api/v1/spaces/default/security/waf-policies{id}
+func (p *BigipNextCM) DeleteWAFPolicy(id string) error {
+	deleteWAFPolicyUrl := fmt.Sprintf("%s%s/%s", p.Host, uriWafPolicy, id)
+	f5osLogger.Info("[DeleteWAFPolicy]", "URI Path", deleteWAFPolicyUrl)
+	resp, err := p.doCMRequest("DELETE", deleteWAFPolicyUrl, nil)
+	if err != nil {
+		return err
+	}
+	f5osLogger.Info("[DeleteWAFPolicy]", "resp", string(resp))
+	f5osLogger.Info("[DeleteWAFPolicy]", "WAF Policy Deleted Successfully")
+	return nil
+}
+
+// https://clouddocs.f5.com/api/waf/v1/tasks/policy-import
+// create a function to make policy-import
+
+// func (p *BigipNextCM) PostWAFPolicyImport(config interface{}) (string, error) {
+// 	wafPolicyImportURL := fmt.Sprintf("%s%s", p.Host, "/api/waf/v1/tasks/policy-import")
+// 	f5osLogger.Info("[PostWAFPolicyImport]", "URI Path", wafPolicyImportURL)
+// 	f5osLogger.Info("[PostWAFPolicyImport]", "Config", hclog.Fmt("%+v", config))
+// 	body, err := json.Marshal(config)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	respData, err := p.doCMRequest("POST", wafPolicyImportURL, body)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	f5osLogger.Info("[PostWAFPolicyImport]", "Data::", hclog.Fmt("%+v", string(respData)))
+
+// 	return "", nil
+// }
 
 // mgmt/shared/fast/appsvcs/ac6b8145-c1bf-4140-b2cb-4358cc742931/deployments
 // create GET request to get Fast application draft deployments
@@ -1113,7 +1237,7 @@ func (p *BigipNextCM) CMTokenRefresh() (*BigipNextCM, error) {
 }
 
 func (p *BigipNextCM) CMTokenRefreshNew() error {
-	tokenRefreshUrl := fmt.Sprintf("%s", "/token-refresh")
+	tokenRefreshUrl := "/token-refresh"
 	f5osLogger.Info("[CMTokenRefresh]", "tokenRefreshUrl", tokenRefreshUrl)
 	tokenPayload := make(map[string]interface{})
 	tokenPayload["refresh_token"] = p.RefreshToken
@@ -1617,6 +1741,236 @@ func (p *BigipNextCM) GetTargetTenantList(body interface{}) (string, string) {
 // CM upgrade
 // ------WebKitFormBoundary1mZMGjaktKFrIxOX--
 
+// reqBody := new(bytes.Buffer)
+// mp := multipart.NewWriter(reqBody)
+// for k, v := range bodyInput {
+//   str, ok := v.(string)
+//   if !ok {
+//     return fmt.Errorf("converting %v to string", v)
+//   }
+//   mp.WriteField(k, str)
+// }
+// mp.Close()
+
+// req, err := http.NewRequest(http.MethodPost, "https://my-website.com/endpoint/path", reqBody)
+// if err != nil {
+// // handle err
+// }
+// req.Header["Content-Type"] = []string{mp.FormDataContentType()}
+
+type PolicyimportReqObj struct {
+	FilePath    string `json:"file_path,omitempty"`
+	PolicyName  string `json:"policy_name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Override    string `json:"override,omitempty"`
+}
+
+const filechunk = 8192
+
+// func (p *BigipNextCM) GetMd5ofFile(filePath string) (interface{}, error) {
+// 	file, err := os.Open(filePath)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	defer file.Close()
+
+// 	// Get file info
+// 	info, err := file.Stat()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	// Get the filesize
+// 	filesize := info.Size()
+
+// 	// Calculate the number of blocks
+// 	blocks := uint64(math.Ceil(float64(filesize) / float64(filechunk)))
+
+// 	// Start hash
+// 	hash := md5.New()
+
+// 	// Check each block
+// 	for i := uint64(0); i < blocks; i++ {
+// 		// Calculate block size
+// 		blocksize := int(math.Min(filechunk, float64(filesize-int64(i*filechunk))))
+
+// 		// Make a buffer
+// 		buf := make([]byte, blocksize)
+
+// 		// Make a buffer
+// 		file.Read(buf)
+
+// 		// Write to the buffer
+// 		io.WriteString(hash, string(buf))
+// 	}
+// 	return hash.Sum(nil), nil
+// }
+
+func (p *BigipNextCM) PolicyImport(config *PolicyimportReqObj) (interface{}, error) {
+	// func (p *BigipNextCM) PolicyImport(filePath, policyName, description, override string) ([]byte, error) {
+	body := &bytes.Buffer{}
+	file, err := os.Open(config.FilePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	writer := multipart.NewWriter(body)
+	policyName := config.PolicyName
+	override := config.Override
+	description := config.Description
+	if err = WriteField(writer, "policy_name", policyName); err != nil {
+		return nil, err
+	}
+	if err = WriteField(writer, "description", description); err != nil {
+		return nil, err
+	}
+	if err = WriteField(writer, "override", override); err != nil {
+		return nil, err
+	}
+	if err = WriteFile(writer, "content", file); err != nil {
+		return nil, err
+	}
+	if err = writer.Close(); err != nil { // finishes the multipart message and writes the trailing boundary
+		return nil, err
+	}
+	url := "/waf/v1/tasks/policy-import"
+	url = fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, url)
+	f5osLogger.Info("[PolicyImport]", "URL ", hclog.Fmt("%+v", url))
+	req, err := http.NewRequest("POST", url, body)
+	if err != nil {
+		return nil, nil
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", p.Token))
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	client := &http.Client{
+		Transport: p.Transport,
+		Timeout:   30 * time.Minute,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 200 || resp.StatusCode == 201 || resp.StatusCode == 202 {
+		//{"_links":{"self":{"href":"/api/waf/v1/tasks/policy-import/661f6053-7a8c-4f1d-9259-2f1c001490f4"}},"path":"/v1/tasks/policy-import/661f6053-7a8c-4f1d-9259-2f1c001490f4"}
+		dataResp, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, nil
+		}
+		respData := make(map[string]interface{})
+		err = json.Unmarshal(dataResp, &respData)
+		if err != nil {
+			return nil, nil
+		}
+		// get ID from path key
+		pathList := strings.Split(respData["path"].(string), "/")
+		return p.PolicyImportStatus(pathList[len(pathList)-1], 100)
+	}
+	if resp.StatusCode >= 400 {
+		byteData, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf(`{"code":%d,"error":%s`, resp.StatusCode, byteData)
+	}
+	return nil, nil
+}
+
+func (p *BigipNextCM) PolicyImportStatus(taskID string, timeOut int) (interface{}, error) {
+	importUrl := fmt.Sprintf("%s%s", "/waf/v1/tasks/policy-import/", taskID)
+	f5osLogger.Info("[PolicyImportStatus]", "URI Path", importUrl)
+	taskData := make(map[string]interface{})
+	// var timeout time.Duration
+	timeout := time.Duration(timeOut) * time.Second
+	endtime := time.Now().Add(timeout)
+	for time.Now().Before(endtime) {
+		respData, err := p.GetCMRequest(importUrl)
+		if err != nil {
+			return nil, err
+		}
+		f5osLogger.Info("[PolicyImportStatus]", "Task Status:\t", hclog.Fmt("%+v", string(respData)))
+		err = json.Unmarshal(respData, &taskData)
+		if err != nil {
+			return nil, err
+		}
+		if taskData["status"] == "completed" {
+			return taskData, nil
+		}
+		if taskData["status"] == "failed" {
+			return nil, fmt.Errorf("%s", taskData["failure_reason"])
+		}
+		inVal := timeOut / 10
+		time.Sleep(time.Duration(inVal) * time.Second)
+	}
+	return nil, fmt.Errorf("task Status is still in :%+v within timeout period of:%+v", taskData["status"], timeout)
+}
+
+func (p *BigipNextCM) FileImportBackup(url string, values map[string]io.Reader) ([]byte, error) {
+	// Prepare a form that you will submit to that URL.
+	// var b bytes.Buffer
+	b := &bytes.Buffer{}
+	var err error
+	w := multipart.NewWriter(b)
+	// writer := multipart.NewWriter(body)
+
+	// Don't forget to close the multipart writer.
+	// If you don't close it, your request will be missing the terminating boundary.
+	defer w.Close()
+
+	for key, r := range values {
+		var fw io.Writer
+		if x, ok := r.(io.Closer); ok {
+			defer x.Close()
+		}
+		// Add an image file
+		if x, ok := r.(*os.File); ok {
+			if fw, err = w.CreateFormFile(key, x.Name()); err != nil {
+				return []byte(""), nil
+			}
+		} else {
+			// Add other fields
+			if fw, err = w.CreateFormField(key); err != nil {
+				return []byte(""), nil
+			}
+		}
+		if _, err = io.Copy(fw, r); err != nil {
+			return []byte(""), nil
+		}
+
+	}
+
+	url = fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, url)
+	f5osLogger.Info("[FileImport]", "URL ", hclog.Fmt("%+v", url))
+	req, err := http.NewRequest("POST", url, b)
+	if err != nil {
+		return []byte(""), nil
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", p.Token))
+	req.Header.Add("Content-Type", w.FormDataContentType())
+
+	client := &http.Client{
+		Transport: p.Transport,
+		Timeout:   30 * time.Minute,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return []byte(""), nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 200 || resp.StatusCode == 201 || resp.StatusCode == 202 {
+		return io.ReadAll(resp.Body)
+	}
+	if resp.StatusCode >= 400 {
+		byteData, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf(`{"code":%d,"error":%s`, resp.StatusCode, byteData)
+	}
+	return []byte("FileImport Success"), nil
+}
+
 // create multi-part form data for file upload
 func (p *BigipNextCM) createMultipartFormData(filePath string) (io.Reader, string, error) {
 	body := &bytes.Buffer{}
@@ -1627,7 +1981,14 @@ func (p *BigipNextCM) createMultipartFormData(filePath string) (io.Reader, strin
 	}
 	defer file.Close()
 	f5osLogger.Info("[createMultipartFormData]", "file_name ", hclog.Fmt("%+v", filepath.Base(filePath)))
-	part, err := writer.CreateFormFile("content", filepath.Base(filePath))
+	// Adding MIMEHeader
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, "content", filepath.Base(file.Name())))
+	h.Set("Content-Type", "application/octet-stream")
+	part, err := writer.CreatePart(h)
+
+	// part, err := writer.CreateFormFile("content", filepath.Base(filePath))
+
 	if err != nil {
 		return nil, "", err
 	}
@@ -1658,24 +2019,34 @@ func (p *BigipNextCM) createMultipartFormData(filePath string) (io.Reader, strin
 	return body, writer.FormDataContentType(), nil
 }
 
+// curl -vk --location -H "Authorization: Bearer $TOKEN" https://10.145.67.139:443/api/system/v1/files \
+//     -H 'Content-Type: multipart/form-data' \
+//     -F "file_name=$LOCAL_LAST_NEXT_VE_UPGRADE" \
+//     -F "content=@/Users/r.chinthalapalli/Downloads/$LOCAL_LAST_NEXT_VE_UPGRADE" \
+//     -F "description=CM upgrade"
+
+// convert above curl command to GO Lang code
+
 // upload file using multi-part form data
 func (p *BigipNextCM) uploadFile(filePath string) ([]byte, error) {
 	body, contentType, err := p.createMultipartFormData(filePath)
 	if err != nil {
 		return nil, err
 	}
-	url := fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, uriCMFileUpload)
+	// url := fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, uriCMFileUpload)
+	url := fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, "/v1/spaces/default/files")
 	f5osLogger.Info("[uploadFile]", "url", hclog.Fmt("%+v", url))
 	f5osLogger.Info("[uploadFile]", "content-type", hclog.Fmt("%+v", contentType))
+
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", p.Token))
-	req.Header.Set("Content-Type", contentType)
+	req.Header.Add("Content-Type", contentType)
 	client := &http.Client{
 		Transport: p.Transport,
-		Timeout:   20 * time.Minute,
+		Timeout:   30 * time.Minute,
 	}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -1689,16 +2060,56 @@ func (p *BigipNextCM) uploadFile(filePath string) ([]byte, error) {
 		byteData, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf(`{"code":%d,"error":%s`, resp.StatusCode, byteData)
 	}
+
+	// nextChan := make(chan *BigipNextCM)
+	// go func() {
+	// 	for {
+	// 		time.Sleep(3 * time.Minute)
+	// 		err := p.CMTokenRefreshNew()
+	// 		if err != nil {
+	// 			f5osLogger.Error("Error refreshing CM token", "error", err)
+	// 		}
+	// 		nextChan <- p
+	// 	}
+	// }()
+	// go func() {
+	// 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", p.Token))
+	// 	resp, err := client.Do(req)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	defer resp.Body.Close()
+	// 	if resp.StatusCode == 200 || resp.StatusCode == 201 || resp.StatusCode == 202 {
+	// 		return io.ReadAll(resp.Body)
+	// 	}
+
+	// 	if resp.StatusCode == 401 {
+	// 		continue
+	// 	}
+	// 	if resp.StatusCode >= 400 {
+	// 		byteData, _ := io.ReadAll(resp.Body)
+	// 		return nil, fmt.Errorf(`{"code":%d,"error":%s`, resp.StatusCode, byteData)
+	// 	}
+	// }()
+
+	// for {
+	// 	p = <-nextChan
+
+	// }
+
 	return []byte(""), nil
 }
 
 // make request to upload muti-part form data file
 func (p *BigipNextCM) UploadFile(filePath string) ([]byte, error) {
-	return p.UploadFileWithTokenRefresh(filePath)
+	// return p.uploadFile(filePath)
+	// return p.UploadFileWithTokenRefresh(filePath)
+	// return p.UploadFileWithTokenRefreshbackup(filePath)
+	return p.uploadFileWithRefresh(filePath)
 }
 
 // make request to upload muti-part form data file with token refresh
-func (p *BigipNextCM) UploadFileWithTokenRefresh(filePath string) ([]byte, error) {
+func (p *BigipNextCM) UploadFileWithTokenRefreshbacup(filePath string) ([]byte, error) {
 	var err error
 	var respData []byte
 	for i := 0; i < 10; i++ {
@@ -1717,6 +2128,83 @@ func (p *BigipNextCM) UploadFileWithTokenRefresh(filePath string) ([]byte, error
 	}
 	return respData, nil
 }
+
+// make request to upload muti-part form data file with token refresh
+func (p *BigipNextCM) UploadFileWithTokenRefresh(filePath string) ([]byte, error) {
+	go func() {
+		for {
+			time.Sleep(2 * time.Minute)
+			err := p.CMTokenRefreshNew()
+			if err != nil {
+				f5osLogger.Error("Error refreshing CM token", "error", err)
+			} else {
+				f5osLogger.Info("Refreshed CM token successfully")
+			}
+		}
+	}()
+
+	respData, err := p.uploadFile(filePath)
+	if err != nil {
+		return []byte(""), err
+	}
+	return respData, nil
+
+	// var err error
+	// var respData []byte
+	// for i := 0; i < 10; i++ {
+	// 	respData, err = p.uploadFile(filePath)
+	// 	if err != nil {
+	// 		if strings.Contains(err.Error(), "401") {
+	// 			p, err = p.CMTokenRefresh()
+	// 			if err != nil {
+	// 				return nil, err
+	// 			}
+	// 			continue
+	// 		}
+	// 		return nil, err
+	// 	}
+	// 	break
+	// }
+	// return respData, nil
+}
+
+// create func to run CMRefresh Token and uploadFile parallel
+func (p *BigipNextCM) uploadFileWithRefresh(filePath string) ([]byte, error) {
+	nextChan := make(chan *BigipNextCM)
+	var resp []byte
+	respChan := make(chan []byte)
+	errChan := make(chan error)
+	var err error
+	go func() {
+		nextChan <- p
+		resp, err = p.uploadFile(filePath)
+		if err != nil {
+			errChan <- err
+		}
+		respChan <- resp
+	}()
+	go func() {
+		p = <-nextChan
+		for {
+			time.Sleep(3 * time.Minute)
+			err := p.CMTokenRefreshNew()
+			if err != nil {
+				f5osLogger.Error("Error refreshing CM token", "error", err)
+			}
+		}
+	}()
+	err = <-errChan
+	if err != nil {
+		return nil, err
+	}
+	return <-respChan, nil
+}
+
+// write above logic using channel
+
+// create http request with large file using multi part form-data and token refresh
+
+// create a function to add two numbers
 
 // https://10.144.73.240/api/system/v1/files
 // filename query parameter
