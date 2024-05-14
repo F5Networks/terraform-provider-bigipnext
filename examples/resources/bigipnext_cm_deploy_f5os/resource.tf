@@ -37,4 +37,3 @@ resource "bigipnext_cm_deploy_f5os" "velos01" {
 
   }
 }
-
