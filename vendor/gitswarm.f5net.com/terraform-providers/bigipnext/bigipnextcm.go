@@ -1400,6 +1400,9 @@ outerfor:
 		}
 		f5osLogger.Info("[getAS3DeploymentTaskStatus]", "Status:", hclog.Fmt("%+v", responseData["records"].([]interface{})[0].(map[string]interface{})["status"].(string)))
 		for _, v := range responseData["records"].([]interface{}) {
+			if v.(map[string]interface{})["status"].(string) == "failed" {
+				return nil, fmt.Errorf("%v", v.(map[string]interface{})["failure_reason"].(string))
+			}
 			if v.(map[string]interface{})["status"].(string) != "completed" {
 				time.Sleep(5 * time.Second)
 				continue
@@ -2693,6 +2696,7 @@ type DeviceProviderReq struct {
 			Username string `json:"username,omitempty"`
 			Password string `json:"password,omitempty"`
 		} `json:"authentication,omitempty"`
+		CertFingerprint string `json:"cert_fingerprint,omitempty"`
 	} `json:"connection,omitempty"`
 }
 type DeviceProviderResponse struct {
@@ -2725,6 +2729,10 @@ func (p *BigipNextCM) PostDeviceProvider(config interface{}) (*DeviceProviderRes
 	}
 	respData, err := p.PostCMRequest(providerUrl, body)
 	if err != nil {
+		if strings.Contains(err.Error(), "cert_fingerprint") {
+			config.(*DeviceProviderReq).Connection.CertFingerprint = strings.ReplaceAll(strings.Split(string(strings.Split(err.Error(), ",")[1]), ":")[2], "\"", "")
+			return p.PostDeviceProvider(config)
+		}
 		return nil, err
 	}
 	f5osLogger.Debug("[PostDeviceProvider]", "Resp::", hclog.Fmt("%+v", string(respData)))
@@ -3019,15 +3027,21 @@ type CMReqVsphereNetworkAdapterSettings struct {
 	MgmtNetworkName           string `json:"mgmt_network_name,omitempty"`
 	ExternalNetworkName       string `json:"external_network_name,omitempty"`
 }
+
+type CMReqSelfIps struct {
+	Address    string `json:"address,omitempty"`
+	DeviceName string `json:"deviceName,omitempty"`
+}
+
+type CMReqVlans struct {
+	SelfIps    []CMReqSelfIps `json:"selfIps,omitempty"`
+	Name       string         `json:"name,omitempty"`
+	Tag        int            `json:"tag,omitempty"`
+	DefaultVrf bool           `json:"defaultVrf,omitempty"`
+}
+
 type CMReqL1Networks struct {
-	Vlans []struct {
-		SelfIps []struct {
-			Address    string `json:"address,omitempty"`
-			DeviceName string `json:"deviceName,omitempty"`
-		} `json:"selfIps,omitempty"`
-		Name string `json:"name,omitempty"`
-		Tag  int    `json:"tag,omitempty"`
-	} `json:"vlans,omitempty"`
+	Vlans  []CMReqVlans `json:"vlans,omitempty"`
 	L1Link struct {
 		LinkType string `json:"linkType,omitempty"`
 		Name     string `json:"name,omitempty"`
@@ -3606,6 +3620,142 @@ func (p *BigipNextCM) GetDeviceHATaskStatus(taskID string, timeOut int) (map[str
 		time.Sleep(time.Duration(inVal) * time.Second)
 	}
 	return nil, fmt.Errorf("task status is still in :%+v within timeout period of:%+v", taskData["status"], timeout)
+}
+
+type CMHANodes struct {
+	NodeAddress string `json:"node_address,omitempty"`
+	Username    string `json:"username,omitempty"`
+	Password    string `json:"password,omitempty"`
+	Fingerprint string `json:"fingerprint,omitempty"`
+}
+
+type CMHANodesStatus struct {
+	Metadata CMHANodeMetadata   `json:"metadata,omitempty"`
+	Spec     CMHANodeSpec       `json:"spec,omitempty"`
+	Status   CMHANodeReadyState `json:"status,omitempty"`
+}
+
+type CMHANodeMetadata struct {
+	Id        string `json:"id,omitempty"`
+	MachineId string `json:"machine_id,omitempty"`
+	Name      string `json:"name,omitempty"`
+}
+
+type CMHANodeSpec struct {
+	NodeAddress string `json:"node_address,omitempty"`
+	NodeType    string `json:"node_type,omitempty"`
+}
+
+type CMHANodeReadyState struct {
+	Ready        bool   `json:"ready,omitempty"`
+	Registration string `json:"registration,omitempty"`
+}
+
+func (p *BigipNextCM) CreateCMHACluster(nodes []CMHANodes) (string, error) {
+	uriNodes := "/v1/system/infra/nodes"
+	payload, err := json.Marshal(nodes)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := p.PostCMRequest(uriNodes, payload)
+
+	if err != nil {
+		return "", err
+	}
+	return string(resp), nil
+}
+
+func (p *BigipNextCM) GetCMHANodes() ([]CMHANodesStatus, error) {
+	uriNodes := "/v1/system/infra/nodes"
+
+	var resp []CMHANodesStatus
+	ret, err := p.GetCMRequest(uriNodes)
+
+	if err != nil {
+		return nil, err
+	}
+
+	json.Unmarshal(ret, &resp)
+	return resp, nil
+}
+
+func (p *BigipNextCM) CheckCMHANodesStatus(nodes []string) ([]CMHANodesStatus, error) {
+	uriNodes := "/v1/system/infra/nodes"
+
+	var resp []CMHANodesStatus
+	start := time.Now()
+	waitTime := time.Duration(5) * time.Minute
+
+	for time.Since(start) < waitTime {
+		ret, err := p.GetCMRequest(uriNodes)
+
+		if err != nil {
+			f5osLogger.Error("[CheckCMHANodesStatus]", "Error", err)
+			time.Sleep(3 * time.Second)
+			continue
+		}
+
+		json.Unmarshal(ret, &resp)
+
+		r := p.CheckCMHANodeReadyState(resp, nodes)
+
+		if len(r) == 0 {
+			return resp, nil
+		} else if len(r) > 0 {
+			time.Sleep(3 * time.Second)
+			continue
+		}
+	}
+
+	return nil, fmt.Errorf("timeout waiting for nodes to be ready")
+}
+
+func (p *BigipNextCM) CheckCMHANodeReadyState(resp []CMHANodesStatus, nodes []string) []string {
+	var waitingNodes []string
+
+	for _, node := range resp {
+		for _, n := range nodes {
+			if node.Metadata.Name != "central-manager-server" && node.Spec.NodeAddress == n {
+				if node.Status.Ready {
+					f5osLogger.Info("[CheckCMHANodesStatus]", "Info", fmt.Sprintf("Node %v is ready", node.Spec.NodeAddress))
+				} else {
+					waitingNodes = append(waitingNodes, node.Spec.NodeAddress)
+				}
+			}
+		}
+	}
+
+	if len(waitingNodes) > 0 {
+		f5osLogger.Info("[CheckCMHANodesStatus]", "Info", fmt.Sprintf("Waiting for nodes to be ready: %v", waitingNodes))
+		return waitingNodes
+	}
+	f5osLogger.Info("[CheckCMHANodesStatus]", "Info", fmt.Sprintf("All nodes are ready: %v", nodes))
+	return waitingNodes
+}
+
+func (p *BigipNextCM) DeleteCMHANodes(deleteNodes []string) {
+	uriNodes := "/api/v1/system/infra/nodes"
+
+	for i, node := range deleteNodes {
+		nodeName := "central-manager-" + strings.ReplaceAll(node, ".", "-")
+		nodeName = strings.ReplaceAll(nodeName, "\"", "")
+		uri := p.Host + uriNodes + "/" + nodeName
+		res, err := p.doCMRequest("DELETE", uri, nil)
+		if err != nil {
+			f5osLogger.Error("[DeleteCMHANodes]", "Error", fmt.Sprintf("%v, retrying in 10 seconds", err))
+			time.Sleep(10 * time.Second)
+			res, err = p.doCMRequest("DELETE", uri, nil)
+			if err != nil {
+				f5osLogger.Error("[DeleteCMHANodes]", "Error", fmt.Sprintf("%v, unable to delete node %v after retry", err, nodeName))
+				continue
+			}
+		}
+		f5osLogger.Info("[DeleteCMHANodes]", "Info", string(res))
+		if i != len(deleteNodes)-1 {
+			time.Sleep(10 * time.Second)
+		}
+	}
 }
 
 // https://10.144.73.240/api/device/v1/instances

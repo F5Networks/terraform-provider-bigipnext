@@ -190,6 +190,7 @@ func (p *BigipNextCMProvider) Resources(ctx context.Context) []func() resource.R
 		NewCMDiscoveryNextResource,
 		NewNextCMWAFPolicyResource,
 		NewNextCMWAFPolicyImportResource,
+		NewNextCMHAClusterResource,
 	}
 }
 

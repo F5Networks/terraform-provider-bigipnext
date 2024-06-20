@@ -31,13 +31,14 @@ type NextDeployVmwareResource struct {
 }
 
 type NextDeployVmwareResourceModel struct {
-	VsphereProvider types.Object `tfsdk:"vsphere_provider"`
-	Instance        types.Object `tfsdk:"instance"`
-	Timeout         types.Int64  `tfsdk:"timeout"`
-	DnsServers      types.List   `tfsdk:"dns_servers"`
-	NtpServers      types.List   `tfsdk:"ntp_servers"`
-	Id              types.String `tfsdk:"id"`
-	ProviderId      types.String `tfsdk:"provider_id"`
+	VsphereProvider types.Object     `tfsdk:"vsphere_provider"`
+	Instance        types.Object     `tfsdk:"instance"`
+	Timeout         types.Int64      `tfsdk:"timeout"`
+	DnsServers      types.List       `tfsdk:"dns_servers"`
+	NtpServers      types.List       `tfsdk:"ntp_servers"`
+	Id              types.String     `tfsdk:"id"`
+	ProviderId      types.String     `tfsdk:"provider_id"`
+	L1networks      []L1networkModel `tfsdk:"l1_networks"`
 }
 
 type VsphereProviderModel struct {
@@ -64,6 +65,17 @@ type InstanceModel struct {
 	InternalNetworkname       types.String `tfsdk:"internal_network_name"`
 	HacontrolplaneNetworkname types.String `tfsdk:"ha_control_plane_network_name"`
 	HadataplaneNetworkname    types.String `tfsdk:"ha_data_plane_network_name"`
+}
+
+type L1networkModel struct {
+	Name  types.String `tfsdk:"name"`
+	Vlans []VlanModel  `tfsdk:"vlans"`
+}
+
+type VlanModel struct {
+	VlanName types.String `tfsdk:"vlan_name"`
+	SelfIps  types.List   `tfsdk:"self_ips"`
+	VlanTag  types.Int64  `tfsdk:"vlan_tag"`
 }
 
 func (r *NextDeployVmwareResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -184,6 +196,39 @@ func (r *NextDeployVmwareResource) Schema(ctx context.Context, req resource.Sche
 				MarkdownDescription: "List of NTP servers to assign to each deployed instance",
 				Optional:            true,
 				ElementType:         types.StringType,
+			},
+			"l1_networks": schema.ListNestedAttribute{
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"name": schema.StringAttribute{
+							Required:            true,
+							MarkdownDescription: "Name of l1Newwork to assign to deployed instance",
+						},
+						"vlans": schema.ListNestedAttribute{
+							NestedObject: schema.NestedAttributeObject{
+								Attributes: map[string]schema.Attribute{
+									"vlan_name": schema.StringAttribute{
+										Required:            true,
+										MarkdownDescription: "Name of vlan to be mapped for l1Network",
+									},
+									"vlan_tag": schema.Int64Attribute{
+										MarkdownDescription: "Vlan tag to be mapped for l1Network.",
+										Required:            true,
+									},
+									"self_ips": schema.ListAttribute{
+										ElementType:         types.StringType,
+										Required:            true,
+										MarkdownDescription: "List of self ips to be mapped for l1Network",
+									},
+								},
+							},
+							Required:            true,
+							MarkdownDescription: "List of vlans to be mapped for l1Network,each vlan is a block of attributes like vlan_name,vlan_tag,self_ips",
+						},
+					},
+				},
+				Optional:            true,
+				MarkdownDescription: "List of l1Newworks to assign to deployed instance, each l1Network is a block of attributes like name, vlans",
 			},
 			"provider_id": schema.StringAttribute{
 				Computed:            true,
@@ -348,6 +393,36 @@ func instanceConfig(ctx context.Context, data *NextDeployVmwareResourceModel) *b
 		Name: providerModel.ProviderName.ValueString(),
 		Type: "vsphere",
 	})
+	var l1Networks bigipnextsdk.CMReqL1Networks
+	// var l1networkModel L1networksModel
+	// interfaces := []string{"1.1", "1.2", "1.3"}
+	for index, val := range data.L1networks {
+		tflog.Info(ctx, fmt.Sprintf("val : %+v", val))
+		l1Networks.Name = val.Name.ValueString()
+		l1Networks.L1Link.Name = fmt.Sprintf("1.%d", index+1)
+		l1Networks.L1Link.LinkType = "Interface"
+		l1Networks.Vlans = make([]bigipnextsdk.CMReqVlans, len(val.Vlans))
+		for index, vlan := range val.Vlans {
+			tflog.Info(ctx, fmt.Sprintf("vlan name : %+v", vlan.VlanName.ValueString()))
+			l1Networks.Vlans[index].Name = vlan.VlanName.ValueString()
+			l1Networks.Vlans[index].DefaultVrf = true
+			l1Networks.Vlans[index].Tag = int(vlan.VlanTag.ValueInt64())
+			elements := make([]types.String, 0, len(vlan.SelfIps.Elements()))
+			diags := vlan.SelfIps.ElementsAs(ctx, &elements, false)
+			if diags.HasError() {
+				tflog.Error(ctx, fmt.Sprintf("SelfIps diag Error: %+v", diags.Errors()))
+			}
+			l1Networks.Vlans[index].SelfIps = make([]bigipnextsdk.CMReqSelfIps, len(elements))
+			for ii, selfip := range elements {
+				l1Networks.Vlans[index].SelfIps[ii].Address = selfip.ValueString()
+				l1Networks.Vlans[index].SelfIps[ii].DeviceName = fmt.Sprintf("%s-%s-%d", val.Name.ValueString(), vlan.VlanName.ValueString(), ii)
+			}
+		}
+		cmReqDeviceInstance.Parameters.L1Networks = append(cmReqDeviceInstance.Parameters.L1Networks, l1Networks)
+	}
+
+	tflog.Info(ctx, fmt.Sprintf("l1Networks : %+v", l1Networks))
+
 	cmReqDeviceInstance.Parameters.VSphereProperties = append(cmReqDeviceInstance.Parameters.VSphereProperties, bigipnextsdk.CMReqVsphereProperties{
 		NumCpus:               int(instanceModel.Cpu.ValueInt64()),
 		Memory:                int(instanceModel.Memory.ValueInt64()),

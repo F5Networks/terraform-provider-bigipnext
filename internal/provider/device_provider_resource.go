@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -100,11 +101,10 @@ func (r *NextCMDeviceProviderResource) Create(ctx context.Context, req resource.
 	respData, err := r.client.PostDeviceProvider(providerConfig)
 
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Create Certificate, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Adding Provider failed with: %s", err))
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] respData ID:%+v\n", respData.Id))
-
 	resCfg.Id = types.StringValue(respData.Id)
 	resCfg.Type = types.StringValue(respData.Type)
 	resCfg.Name = types.StringValue(respData.Name)
