@@ -50,6 +50,7 @@ resource "bigipnext_cm_deploy_vmware" "vmware" {
 ### Optional
 
 - `dns_servers` (List of String) List of DNS servers to assign to each deployed instance
+- `l1_networks` (Attributes List) List of l1Newworks to assign to deployed instance, each l1Network is a block of attributes like name, vlans (see [below for nested schema](#nestedatt--l1_networks))
 - `ntp_servers` (List of String) List of NTP servers to assign to each deployed instance
 - `timeout` (Number) The number of seconds to wait for instance deployment to finish.
 
@@ -93,3 +94,21 @@ Required:
 - `provider_name` (String) Name of provider to be used for deploying VMs
 - `resource_pool_name` (String) The vSphere resource pool to create the VMs
 - `vm_template_name` (String) The vSphere VM template name to create the VMs
+
+
+<a id="nestedatt--l1_networks"></a>
+### Nested Schema for `l1_networks`
+
+Required:
+
+- `name` (String) Name of l1Newwork to assign to deployed instance
+- `vlans` (Attributes List) List of vlans to be mapped for l1Network,each vlan is a block of attributes like vlan_name,vlan_tag,self_ips (see [below for nested schema](#nestedatt--l1_networks--vlans))
+
+<a id="nestedatt--l1_networks--vlans"></a>
+### Nested Schema for `l1_networks.vlans`
+
+Required:
+
+- `self_ips` (List of String) List of self ips to be mapped for l1Network
+- `vlan_name` (String) Name of vlan to be mapped for l1Network
+- `vlan_tag` (Number) Vlan tag to be mapped for l1Network.

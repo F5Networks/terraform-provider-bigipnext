@@ -364,7 +364,7 @@ github.com/zclconf/go-cty/cty/function/stdlib
 github.com/zclconf/go-cty/cty/gocty
 github.com/zclconf/go-cty/cty/json
 github.com/zclconf/go-cty/cty/set
-# gitswarm.f5net.com/terraform-providers/bigipnext v0.0.0-20240514153444-13e5ae1515eb
+# gitswarm.f5net.com/terraform-providers/bigipnext v0.0.0-20240620103831-5476a6be942d
 ## explicit; go 1.19
 gitswarm.f5net.com/terraform-providers/bigipnext
 # golang.org/x/crypto v0.21.0
