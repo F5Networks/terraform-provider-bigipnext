@@ -50,7 +50,7 @@ resource "bigipnext_cm_deploy_vmware" "vmware" {
 ### Optional
 
 - `dns_servers` (List of String) List of DNS servers to assign to each deployed instance
-- `l1_networks` (Attributes List) List of l1Newworks to assign to deployed instance, each l1Network is a block of attributes like name, vlans (see [below for nested schema](#nestedatt--l1_networks))
+- `l1_networks` (Attributes List) List of l1networks to assign to deployed instance, each l1network is a block of attributes like name, vlans (see [below for nested schema](#nestedatt--l1_networks))
 - `ntp_servers` (List of String) List of NTP servers to assign to each deployed instance
 - `timeout` (Number) The number of seconds to wait for instance deployment to finish.
 

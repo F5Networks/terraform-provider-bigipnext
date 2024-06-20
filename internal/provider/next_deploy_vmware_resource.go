@@ -228,7 +228,7 @@ func (r *NextDeployVmwareResource) Schema(ctx context.Context, req resource.Sche
 					},
 				},
 				Optional:            true,
-				MarkdownDescription: "List of l1Newworks to assign to deployed instance, each l1Network is a block of attributes like name, vlans",
+				MarkdownDescription: "List of l1networks to assign to deployed instance, each l1network is a block of attributes like name, vlans",
 			},
 			"provider_id": schema.StringAttribute{
 				Computed:            true,
