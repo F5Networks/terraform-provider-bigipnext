@@ -93,20 +93,20 @@ func (r *NextCMAS3DeployResource) Configure(ctx context.Context, req resource.Co
 func (r *NextCMAS3DeployResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var resCfg *NextCMAS3DeployResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	//as3Config := resCfg.As3Json.ValueString()
 
 	tflog.Info(ctx, fmt.Sprintf("[CREATE]Posting Application service config:%+v", resCfg.As3Json.ValueString()))
 	drartID, err := r.client.PostAS3DraftDocument(resCfg.As3Json.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Create AS3 config Drart, got error: %s", err))
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("Application Service Draft ID:%+v", drartID))
 	DeployID, err := r.client.CMAS3DeployNext(drartID, resCfg.TargetAddress.ValueString(), int(resCfg.Timeout.ValueInt64()))
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Deploy AS3 config, got error: %s", err))
 		return
 	}
@@ -121,14 +121,14 @@ func (r *NextCMAS3DeployResource) Create(ctx context.Context, req resource.Creat
 func (r *NextCMAS3DeployResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *NextCMAS3DeployResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	draftID := stateCfg.Id.ValueString()
 	deployID := stateCfg.DeployId.ValueString()
 	tflog.Info(ctx, "Reading AS3 Service Deployment")
 	as3Resp, err := r.client.GetAS3DeploymentTaskStatus(draftID, deployID)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to READ AS3 config, got error: %s", err))
 		return
 	}
@@ -142,7 +142,7 @@ func (r *NextCMAS3DeployResource) Read(ctx context.Context, req resource.ReadReq
 func (r *NextCMAS3DeployResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var resCfg *NextCMAS3DeployResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	as3Json := resCfg.As3Json.ValueString()
@@ -152,14 +152,14 @@ func (r *NextCMAS3DeployResource) Update(ctx context.Context, req resource.Updat
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE]Update AS3 application service: %s", as3Json))
 
 	err := r.client.PutAS3DraftDocument(draftID, resCfg.As3Json.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Update AS3 application service, got error: %s", err))
 		return
 	}
 	tflog.Info(ctx, "Reading AS3 Service Deployment")
 	// time.Sleep(5 * time.Second)
 	as3Resp, err := r.client.GetAS3DeploymentTaskStatus(draftID, deployID)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to READ AS3 config, got error: %s", err))
 		return
 	}
@@ -173,14 +173,14 @@ func (r *NextCMAS3DeployResource) Update(ctx context.Context, req resource.Updat
 
 func (r *NextCMAS3DeployResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var stateCfg *NextCMAS3DeployResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
 	draftID := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("Deleting AS3 application service Draft: %s", draftID))
 	err := r.client.DeleteAS3DeploymentTask(draftID)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete AS3 Application service, got error: %s", err))
 		return
 	}

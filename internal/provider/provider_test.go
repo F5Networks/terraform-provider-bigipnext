@@ -71,16 +71,16 @@ func teardown() {
 	server.Close()
 }
 
-// // loadFixtureBytes returns the entire contents of the given file as a byte slice
-// func loadFixtureBytes(path string) []byte {
-// 	contents, err := os.ReadFile(path)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return contents
-// }
+// loadFixtureBytes returns the entire contents of the given file as a byte slice
+func loadFixtureBytes(path string) []byte {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	return contents
+}
 
-// // loadFixtureString returns the entire contents of the given file as a string
-// func loadFixtureString(path string) string {
-// 	return string(loadFixtureBytes(path))
-// }
+// loadFixtureString returns the entire contents of the given file as a string
+func loadFixtureString(path string) string {
+	return string(loadFixtureBytes(path))
+}

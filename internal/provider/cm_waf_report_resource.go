@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -13,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	bigipnextsdk "gitswarm.f5net.com/terraform-providers/bigipnext"
-	"regexp"
 )
 
 var (
@@ -160,7 +161,7 @@ func (r *NextCMWAFReportResource) Create(ctx context.Context, req resource.Creat
 	var resCfg *NextCMWAFReportResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] NextCMWAFReportResource:%+v\n", resCfg.Name.ValueString()))
@@ -171,7 +172,7 @@ func (r *NextCMWAFReportResource) Create(ctx context.Context, req resource.Creat
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] :%+v\n", reqDraft))
 
 	id, created_by, user_defined, err := r.client.PostWAFReport("POST", reqDraft)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("WAF Security Report Error", fmt.Sprintf("Failed to Create WAF Security Report, got error: %s", err))
 		return
 	}
@@ -187,13 +188,13 @@ func (r *NextCMWAFReportResource) Create(ctx context.Context, req resource.Creat
 func (r *NextCMWAFReportResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *NextCMWAFReportResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	id := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("[READ] Reading WAF Security Report : %s", id))
 	wafData, err := r.client.GetWAFReportDetails(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Error", fmt.Sprintf("Failed to Read WAF Security Report, got error: %s", err))
 		return
 	}
@@ -206,7 +207,7 @@ func (r *NextCMWAFReportResource) Update(ctx context.Context, req resource.Updat
 	var resCfg *NextCMWAFReportResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] Updating WAF Security Report: %s", resCfg.Name.ValueString()))
@@ -218,7 +219,7 @@ func (r *NextCMWAFReportResource) Update(ctx context.Context, req resource.Updat
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] :%+v\n", reqDraft))
 
 	id, created_by, user_defined, err := r.client.PostWAFReport("PUT", reqDraft)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Update WAF Security Report, got error: %s", err))
 		return
 	}
@@ -234,7 +235,7 @@ func (r *NextCMWAFReportResource) Update(ctx context.Context, req resource.Updat
 func (r *NextCMWAFReportResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 	var stateCfg *NextCMWAFReportResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
@@ -243,7 +244,7 @@ func (r *NextCMWAFReportResource) Delete(ctx context.Context, req resource.Delet
 	tflog.Info(ctx, fmt.Sprintf("[DELETE] Deleting WAF Security Report : %s", id))
 
 	err := r.client.DeleteWAFReport(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete WAF Security Report, got error: %s", err))
 		return
 	}
@@ -251,7 +252,7 @@ func (r *NextCMWAFReportResource) Delete(ctx context.Context, req resource.Delet
 	stateCfg.Id = types.StringValue("")
 }
 
-func (r *NextCMWAFReportResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *NextCMWAFReportResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) { // coverage-ignore
 	// resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 

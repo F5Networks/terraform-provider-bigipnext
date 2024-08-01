@@ -1,0 +1,13 @@
+{
+    "_links":{
+        "self":{
+            "href":"/v1/deletion-tasks/642d5964-8cd9-4881-9086-1ed5ca682101"
+        }
+    },
+    "address":"10.146.168.20",
+    "created":"2023-11-28T07:55:50.924918Z",
+    "device_id":"8d6c8c85-1738-4a34-b57b-d3644a2ecfcc",
+    "id":"642d5964-8cd9-4881-9086-1ed5ca682101",
+    "state":"factoryResetInstance",
+    "status":"completed"
+}

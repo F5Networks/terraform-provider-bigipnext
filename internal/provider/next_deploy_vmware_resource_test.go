@@ -51,7 +51,7 @@ func TestUnitNextDeployVmwareResourceTC1(t *testing.T) {
 			"refreshExpiresIn": 1209600
 		}`)
 	})
-	mux.HandleFunc("/device/v1/providers?filter=name+eq+'myvsphere03'", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v1/spaces/default/providers?filter=name+eq+'myvsphere03'", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `{"_links":{"self":{"href":"/api/v1/spaces/default/certificates/create"}},"path":"/v1/certificates/43b7bd5b-5b61-4a64-8fe4-68ef8ed910f2"}`)
 	})
@@ -82,7 +82,7 @@ func TestUnitNextDeployVmwareResourceTC2(t *testing.T) {
 			"refreshExpiresIn": 1209600
 		}`)
 	})
-	mux.HandleFunc("/api/device/v1/providers", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v1/spaces/default/providers", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `[{"instances":[{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"},{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"},{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"}],"provider_host":"mbip-70-vcenter.pdsea.f5net.com","provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b","provider_name":"myvsphere03","provider_type":"VSPHERE","provider_username":"r.chinthalapalli@f5.com","updated":"2023-12-12T11:53:58.614102Z"}]`)
 	})
@@ -117,7 +117,7 @@ func TestUnitNextDeployVmwareResourceTC3(t *testing.T) {
 			"refreshExpiresIn": 1209600
 		}`)
 	})
-	mux.HandleFunc("/api/device/v1/providers", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v1/spaces/default/providers", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `[{"instances":[{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"},{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"},{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"}],"provider_host":"mbip-70-vcenter.pdsea.f5net.com","provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b","provider_name":"myvsphere03","provider_type":"VSPHERE","provider_username":"r.chinthalapalli@f5.com","updated":"2023-12-12T11:53:58.614102Z"}]`)
 	})
@@ -161,7 +161,7 @@ func TestUnitNextDeployVmwareResourceTC3(t *testing.T) {
 // 			"refreshExpiresIn": 1209600
 // 		}`)
 // 	})
-// 	mux.HandleFunc("/api/device/v1/providers", func(w http.ResponseWriter, r *http.Request) {
+// 	mux.HandleFunc("/api/v1/spaces/default/providers", func(w http.ResponseWriter, r *http.Request) {
 // 		w.WriteHeader(http.StatusOK)
 // 		_, _ = fmt.Fprintf(w, `[{"instances":[{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"},{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"},{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"}],"provider_host":"mbip-70-vcenter.pdsea.f5net.com","provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b","provider_name":"myvsphere03","provider_type":"VSPHERE","provider_username":"r.chinthalapalli@f5.com","updated":"2023-12-12T11:53:58.614102Z"}]`)
 // 	})
@@ -209,7 +209,7 @@ func TestUnitNextDeployVmwareResourceTC5(t *testing.T) {
 			"refreshExpiresIn": 1209600
 		}`)
 	})
-	mux.HandleFunc("/api/device/v1/providers", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v1/spaces/default/providers", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `[{"instances":[{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"},{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"},{"provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b"}],"provider_host":"mbip-70-vcenter.pdsea.f5net.com","provider_id":"9945d9cd-9f13-438f-8b97-f0cb1745d32b","provider_name":"myvsphere03","provider_type":"VSPHERE","provider_username":"r.chinthalapalli@f5.com","updated":"2023-12-12T11:53:58.614102Z"}]`)
 	})
@@ -274,6 +274,13 @@ resource "bigipnext_cm_deploy_vmware" "vmware" {
     internal_network_name      = "LocalTestVLAN-114"
     ha_data_plane_network_name = "LocalTestVLAN-116"
   }
+  l1_networks = [{
+    name          = "demonetwork1"
+    vlans = [{
+      vlan_tag = 115
+      vlan_name = "vlan-115"
+      self_ips=["10.101.10.10/24","10.101.10.11/24"]}]
+  }]
   ntp_servers = ["0.us.pool.ntp.org"]
   dns_servers = ["8.8.8.8"]
   timeout     = 1200

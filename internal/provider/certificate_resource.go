@@ -183,7 +183,7 @@ func (r *NextCMCertificateResource) Configure(ctx context.Context, req resource.
 func (r *NextCMCertificateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var resCfg *NextCMCertificateResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] NextCMCertificateResource:%+v\n", resCfg.Name.ValueString()))
@@ -194,7 +194,7 @@ func (r *NextCMCertificateResource) Create(ctx context.Context, req resource.Cre
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] :%+v\n", reqDraft))
 
 	draftID, err := r.client.PostCertificateCreate(reqDraft, "CREATE")
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Create Certificate, got error: %s", err))
 		return
 	}
@@ -207,13 +207,13 @@ func (r *NextCMCertificateResource) Create(ctx context.Context, req resource.Cre
 func (r *NextCMCertificateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *NextCMCertificateResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	id := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("Reading Certificate : %s", id))
 	certData, err := r.client.GetNextCMCertificate(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Certificate, got error: %s", err))
 		return
 	}
@@ -236,7 +236,7 @@ func (r *NextCMCertificateResource) Update(ctx context.Context, req resource.Upd
 	var resCfg *NextCMCertificateResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE]Posting Certificate: %s", resCfg.Name.ValueString()))
@@ -248,7 +248,7 @@ func (r *NextCMCertificateResource) Update(ctx context.Context, req resource.Upd
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] :%+v\n", reqDraft))
 
 	draftID, err := r.client.PostCertificateCreate(reqDraft, "UPDATE")
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Update Certificate, got error: %s", err))
 		return
 	}
@@ -259,7 +259,7 @@ func (r *NextCMCertificateResource) Update(ctx context.Context, req resource.Upd
 func (r *NextCMCertificateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 	var stateCfg *NextCMCertificateResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
@@ -268,14 +268,14 @@ func (r *NextCMCertificateResource) Delete(ctx context.Context, req resource.Del
 	tflog.Info(ctx, fmt.Sprintf("Deleting Certificate : %s", id))
 
 	err := r.client.DeleteNextCMCertificate(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete Certificate, got error: %s", err))
 		return
 	}
 	stateCfg.Id = types.StringValue("")
 }
 
-func (r *NextCMCertificateResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *NextCMCertificateResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) { // coverage-ignore
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 

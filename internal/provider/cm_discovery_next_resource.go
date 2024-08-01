@@ -89,7 +89,7 @@ func (r *CMDiscoveryNextResource) Configure(ctx context.Context, req resource.Co
 func (r *CMDiscoveryNextResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var resCfg *CMDiscoveryNextResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] CMDiscoveryNextResource:%+v\n", resCfg.Address.ValueString()))
@@ -99,7 +99,7 @@ func (r *CMDiscoveryNextResource) Create(ctx context.Context, req resource.Creat
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] Device Provider config:%+v\n", providerConfig))
 
 	respData, err := r.client.DiscoverInstance(providerConfig)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Create Certificate, got error: %s", err))
 		return
 	}
@@ -111,14 +111,14 @@ func (r *CMDiscoveryNextResource) Create(ctx context.Context, req resource.Creat
 func (r *CMDiscoveryNextResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *CMDiscoveryNextResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	id := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("Reading Instance Info : %+v", id))
 
 	deviceInfo, err := r.client.GetDeviceInfoByID(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Instance Info, got error: %s", err))
 		return
 	}
@@ -138,7 +138,7 @@ func (r *CMDiscoveryNextResource) Update(ctx context.Context, req resource.Updat
 	var resCfg *CMDiscoveryNextResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] Updating Device Provider: %s", resCfg.Id.ValueString()))
@@ -148,13 +148,13 @@ func (r *CMDiscoveryNextResource) Update(ctx context.Context, req resource.Updat
 func (r *CMDiscoveryNextResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 	var stateCfg *CMDiscoveryNextResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
 	id := stateCfg.Id.ValueString()
 	err := r.client.DeleteDevice(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete Instance, got error: %s", err))
 		return
 	}

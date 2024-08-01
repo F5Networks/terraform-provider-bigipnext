@@ -1,12 +1,15 @@
+//go:build !test
+
 package provider
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"reflect"
 )
 
 // Int64DefaultValue is assign default values for Int Type

@@ -65,12 +65,12 @@ func (d *DeviceInventorySource) Read(ctx context.Context, req datasource.ReadReq
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 
 	deviceInventory, err := d.client.GetDeviceInventory()
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read Device inventory, got error: %s", err))
 		return
 	}

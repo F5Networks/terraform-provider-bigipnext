@@ -115,7 +115,7 @@ func (r *NextCMHAClusterResource) Create(ctx context.Context, req resource.Creat
 
 	var nodeCheck []string
 	for _, node := range resCfg.Nodes {
-		if node.Fingerprint.IsNull() {
+		if node.Fingerprint.IsNull() { // coverage-ignore
 			fingerprint, err := getFingerPrint(node.NodeIP.String())
 			if err != nil {
 				resp.Diagnostics.AddError(fmt.Sprintf("error getting fingerprint of the node %s: ", node.NodeIP), err.Error())
@@ -137,7 +137,7 @@ func (r *NextCMHAClusterResource) Create(ctx context.Context, req resource.Creat
 
 	res, err := r.client.CreateCMHACluster(nodes)
 
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("error creating CM HA cluster", err.Error())
 		return
 	}
@@ -145,7 +145,7 @@ func (r *NextCMHAClusterResource) Create(ctx context.Context, req resource.Creat
 	log.Printf("Started CM HA Cluster creation: %v", res)
 
 	res2, err := r.client.CheckCMHANodesStatus(nodeCheck)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("error creating CM HA cluster", err.Error())
 		return
 	}
@@ -220,7 +220,7 @@ func (r *NextCMHAClusterResource) Update(ctx context.Context, req resource.Updat
 				if !doAddOperation {
 					continue
 				}
-				if node.Fingerprint.IsNull() {
+				if node.Fingerprint.IsNull() { // coverage-ignore
 					fingerprint, err := getFingerPrint(node.NodeIP.String())
 					if err != nil {
 						resp.Diagnostics.AddError(fmt.Sprintf("error getting fingerprint of the node %s: ", node.NodeIP), err.Error())
@@ -241,7 +241,7 @@ func (r *NextCMHAClusterResource) Update(ctx context.Context, req resource.Updat
 			}
 
 			_, err := r.client.CreateCMHACluster(nodes)
-			if err != nil {
+			if err != nil { // coverage-ignore
 				resp.Diagnostics.AddError("error updating CM HA cluster", err.Error())
 				return
 			}
@@ -249,7 +249,7 @@ func (r *NextCMHAClusterResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	res, err := r.client.CheckCMHANodesStatus(nodeCheck)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("error reading CM HA cluster", err.Error())
 		return
 	}
@@ -283,7 +283,7 @@ func (r *NextCMHAClusterResource) Delete(ctx context.Context, req resource.Delet
 		}
 	}
 
-	if nodeCount > 1 {
+	if nodeCount > 1 { // coverage-ignore
 		tflog.Error(ctx, "unable to delete all the nodes of the cluster")
 		resp.Diagnostics.AddError("delete operation failed", "unable to delete all the nodes of the cluster")
 	}

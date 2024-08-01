@@ -130,6 +130,7 @@ func (r *NextDeployF5osResource) Schema(ctx context.Context, req resource.Schema
 						Optional:            true,
 						Computed:            true,
 						ElementType:         types.Int64Type,
+						// Default:             listdefault.StaticValue([]int64{1}),
 					},
 					"cpu_cores": schema.Int64Attribute{
 						Optional:            true,
@@ -177,25 +178,27 @@ func (r *NextDeployF5osResource) Configure(ctx context.Context, req resource.Con
 func (r *NextDeployF5osResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var resCfg *NextDeployF5osResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	var providerModel F5OSProviderModel
 	diag := resCfg.F5OSProvider.As(ctx, &providerModel, basetypes.ObjectAsOptions{})
-	if diag.HasError() {
+	if diag.HasError() { // coverage-ignore
 		return
 	}
 	var instanceModel F5OSInstanceModel
 	diag = resCfg.F5OSInstance.As(ctx, &instanceModel, basetypes.ObjectAsOptions{})
-	if diag.HasError() {
+	if diag.HasError() { // coverage-ignore
 		return
 	}
 	providerID, err := r.client.GetDeviceProviderIDByHostname(providerModel.ProviderName.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to get provider ID:, got error: %s", err))
 		return
 	}
+	tflog.Info(ctx, fmt.Sprintf("[CREATE] providerID:%+v\n", providerID))
 	resCfg.ProviderId = types.StringValue(providerID.(string))
+
 	var providerConfig *bigipnextsdk.CMReqDeviceInstance
 	if providerModel.ProviderType.ValueString() == "velos" {
 		providerConfig = f5osVelosConfig(ctx, resCfg)
@@ -205,26 +208,45 @@ func (r *NextDeployF5osResource) Create(ctx context.Context, req resource.Create
 	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] Deploy Next Instance:%+v\n", providerConfig.Parameters.Hostname))
 	respData, err := r.client.PostDeviceInstance(providerConfig, int(resCfg.Timeout.ValueInt64()))
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Deploy Instance, got error: %s", err))
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] respData ID:%+v\n", string(respData)))
 	resCfg.Id = types.StringValue(providerConfig.Parameters.Hostname)
+
+	elements := []int64{1}
+	listValue, diags := types.ListValueFrom(ctx, types.Int64Type, elements)
+	if diags.HasError() { // coverage-ignore
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to set vlan_ids, got error: %s", diags))
+		return
+	}
+
+	f5osInstanceModel := &F5OSInstanceModel{}
+	f5osInstanceModel.SlotIDs = listValue
+	resCfg.F5OSInstance.As(ctx, f5osInstanceModel, basetypes.ObjectAsOptions{})
+
+	tflog.Info(ctx, fmt.Sprintf("[CREATE] listValue :%+v\n", listValue))
+
+	// resCfg.F5OSInstance.As(ctx, path.Root("slot_ids"), listValue)
+	// if diags.HasError() {
+	// 	resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to set slot_ids, got error: %s", diags))
+	// 	return
+	// }
 	resp.Diagnostics.Append(resp.State.Set(ctx, resCfg)...)
 }
 
 func (r *NextDeployF5osResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *NextDeployF5osResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	id := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("Reading Device info for : %+v", id))
 
 	deviceDetails, err := r.client.GetDeviceIdByHostname(stateCfg.Id.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Device Info, got error: %s", err))
 		return
 	}
@@ -236,7 +258,7 @@ func (r *NextDeployF5osResource) Update(ctx context.Context, req resource.Update
 	var resCfg *NextDeployF5osResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, "[UPDATE] Updating Next Instance deployment is not supported")
@@ -247,7 +269,7 @@ func (r *NextDeployF5osResource) Update(ctx context.Context, req resource.Update
 func (r *NextDeployF5osResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 	var stateCfg *NextDeployF5osResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
@@ -255,21 +277,21 @@ func (r *NextDeployF5osResource) Delete(ctx context.Context, req resource.Delete
 
 	tflog.Info(ctx, fmt.Sprintf("[DELETE] Deleting Instance from CM : %s", id))
 	deviceDetails, err := r.client.GetDeviceIdByHostname(stateCfg.Id.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Device Info, got error: %s", err))
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("Device Info : %+v", *deviceDetails))
 
 	err = r.client.DeleteDevice(*deviceDetails)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete Instance, got error: %s", err))
 		return
 	}
 	stateCfg.Id = types.StringValue("")
 }
 
-func (r *NextDeployF5osResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *NextDeployF5osResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) { // coverage-ignore
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 

@@ -1,0 +1,32 @@
+[
+    {
+        "metadata": {
+            "id": "",
+            "machine_id": "",
+            "name": "central-manager-10.146.164.150"
+        },
+        "spec": {
+            "node_address": "10.146.164.150",
+            "node_type": "server"
+        },
+        "status": {
+            "ready": false,
+            "registration": "PENDING"
+        }
+    },
+    {
+        "metadata": {
+            "id": "",
+            "machine_id": "",
+            "name": "central-manager-10.146.165.89"
+        },
+        "spec": {
+            "node_address": "10.146.165.89",
+            "node_type": "server"
+        },
+        "status": {
+            "ready": false,
+            "registration": "PENDING"
+        }
+    }
+]

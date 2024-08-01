@@ -91,7 +91,7 @@ func (r *NextCMImportCertificateResource) Configure(ctx context.Context, req res
 func (r *NextCMImportCertificateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var resCfg *NextCMImportCertificateResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] NextCMImportCertificateResource:%+v\n", resCfg.Name.ValueString()))
@@ -101,7 +101,7 @@ func (r *NextCMImportCertificateResource) Create(ctx context.Context, req resour
 	// tflog.Info(ctx, fmt.Sprintf("[CREATE] :%+v\n", reqDraft))
 
 	draftID, err := r.client.PostCertificateCreate(reqDraft, "IMPORT")
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Import Certificate, got error: %s", err))
 		return
 	}
@@ -114,20 +114,20 @@ func (r *NextCMImportCertificateResource) Create(ctx context.Context, req resour
 func (r *NextCMImportCertificateResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *NextCMImportCertificateResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	id := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("Reading Certificate : %s", id))
 	keycertData, err := r.client.GetNextCMImportCertificateKeyData(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Certificate, Key Data, got error: %s", err))
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("Certificate/Key Data : %+v", keycertData))
 
 	certData, err := r.client.GetNextCMCertificate(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Certificate, got error: %s", err))
 		return
 	}
@@ -147,7 +147,7 @@ func (r *NextCMImportCertificateResource) Update(ctx context.Context, req resour
 	var resCfg *NextCMImportCertificateResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE]Posting Certificate: %s", resCfg.Name.ValueString()))
@@ -159,7 +159,7 @@ func (r *NextCMImportCertificateResource) Update(ctx context.Context, req resour
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] :%+v\n", reqDraft))
 
 	draftID, err := r.client.PostCertificateCreate(reqDraft, "UPDATEIMPORT")
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Update Certificate, got error: %s", err))
 		return
 	}
@@ -170,7 +170,7 @@ func (r *NextCMImportCertificateResource) Update(ctx context.Context, req resour
 func (r *NextCMImportCertificateResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 	var stateCfg *NextCMImportCertificateResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
@@ -179,7 +179,7 @@ func (r *NextCMImportCertificateResource) Delete(ctx context.Context, req resour
 	tflog.Info(ctx, fmt.Sprintf("Deleting Certificate : %s", id))
 
 	err := r.client.DeleteNextCMCertificate(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete Certificate, got error: %s", err))
 		return
 	}

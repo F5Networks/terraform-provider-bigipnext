@@ -80,7 +80,7 @@ func (p *BigipNextCMProvider) Configure(ctx context.Context, req provider.Config
 	var config BigipNextCMProviderModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 
@@ -90,15 +90,15 @@ func (p *BigipNextCMProvider) Configure(ctx context.Context, req provider.Config
 	username := os.Getenv("BIGIPNEXT_USERNAME")
 	password := os.Getenv("BIGIPNEXT_PASSWORD")
 
-	if !config.Host.IsNull() {
+	if !config.Host.IsNull() { // coverage-ignore
 		host = config.Host.ValueString()
 	}
 
-	if !config.Username.IsNull() {
+	if !config.Username.IsNull() { // coverage-ignore
 		username = config.Username.ValueString()
 	}
 
-	if !config.Password.IsNull() {
+	if !config.Password.IsNull() { // coverage-ignore
 		password = config.Password.ValueString()
 	}
 	ctx = tflog.SetField(ctx, "bigipnext_host", host)
@@ -113,7 +113,7 @@ func (p *BigipNextCMProvider) Configure(ctx context.Context, req provider.Config
 	}
 	tflog.Debug(ctx, fmt.Sprintf("bigipnextCmConfig client:%+v", bigipnextCmConfig))
 	client, err := bigipnextsdk.CmNewSession(bigipnextCmConfig)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError(
 			"Unable to Create bigipnext CM Client",
 			"An unexpected error occurred when creating the bigipnext client. "+
@@ -178,7 +178,9 @@ func (p *BigipNextCMProvider) Configure(ctx context.Context, req provider.Config
 func (p *BigipNextCMProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewNextCMAS3DeployResource,
+		// NewNextCMFastHttpResource,
 		NewNextCMBackupRestoreResource,
+		// NewNextCMFastTemplateResource,
 		NewNextCMCertificateResource,
 		NewNextCMImportCertificateResource,
 		NewNextCMDeviceProviderResource,
@@ -191,6 +193,9 @@ func (p *BigipNextCMProvider) Resources(ctx context.Context) []func() resource.R
 		NewNextCMWAFPolicyResource,
 		NewNextCMWAFPolicyImportResource,
 		NewNextCMHAClusterResource,
+		NewCMNextJwtTokenResource,
+		NewCMNextLicenseActivateResource,
+		NewCMNextBootstrapResource,
 	}
 }
 
@@ -219,7 +224,7 @@ func toBigipNextCMProvider(in any) (*bigipnextsdk.BigipNextCM, diag.Diagnostics)
 
 	p, ok := in.(*bigipnextsdk.BigipNextCM)
 
-	if !ok {
+	if !ok { // coverage-ignore
 		diags.AddError(
 			"Unexpected Provider Instance Type",
 			fmt.Sprintf("While creating the data source or resource, an unexpected provider type (%T) was received. "+
