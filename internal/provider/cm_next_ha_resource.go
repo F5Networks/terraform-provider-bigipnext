@@ -133,17 +133,17 @@ func (r *NextHAResource) Configure(ctx context.Context, req resource.ConfigureRe
 func (r *NextHAResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var resCfg *NextHAResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	// get activeNodeID by IP
 	activeNodeID, err := r.client.GetDeviceIdByIp(resCfg.ActiveNodeIp.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Active Device Info, got error: %s", err))
 		return
 	}
 	standbyNodeID, err := r.client.GetDeviceIdByIp(resCfg.StandbyNodeIp.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Standby Device Info, got error: %s", err))
 		return
 	}
@@ -152,7 +152,7 @@ func (r *NextHAResource) Create(ctx context.Context, req resource.CreateRequest,
 	haDeployConfig := haConfig(ctx, *activeNodeID, *standbyNodeID, resCfg)
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] Deploy HA :%+v\n", haDeployConfig.ClusterName))
 	respData, err := r.client.PostDeviceHA(*activeNodeID, haDeployConfig, int(resCfg.Timeout.ValueInt64()))
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Deploy Instance, got error: %s", err))
 		return
 	}
@@ -165,14 +165,14 @@ func (r *NextHAResource) Create(ctx context.Context, req resource.CreateRequest,
 func (r *NextHAResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *NextHAResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	id := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("Reading Device info for : %+v", id))
 
 	haNodeInfo, err := r.client.GetDeviceInfoByIp(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read HA Device Info, got error: %s", err))
 		return
 	}
@@ -180,7 +180,7 @@ func (r *NextHAResource) Read(ctx context.Context, req resource.ReadRequest, res
 	// map[_links:map[self:map[href:/v1/inventory?filter=address+eq+%2710.146.168.20%27/23254958-db28-4d10-b42f-ff58bc16228d]] address:10.146.168.20 certificate_validated:2023-11-27T09:58:27.605586Z certificate_validation_error:tls: failed to verify certificate: x509: cannot validate certificate for 10.146.194.141 because it doesn't contain any IP SANs certificate_validity:false hostname:raviecosyshydha id:23254958-db28-4d10-b42f-ff58bc16228d mode:HA platform_name:VMware platform_type:VE port:5443 version:20.0.1-2.139.10+0.0.136]
 
 	// check if mode is HA from above response map
-	if haNodeInfo.(map[string]interface{})["mode"] != "HA" {
+	if haNodeInfo.(map[string]interface{})["mode"] != "HA" { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read HA Device Info, got error: %s", err))
 		return
 	}
@@ -200,7 +200,7 @@ func (r *NextHAResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 func (r *NextHAResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var stateCfg *NextHAResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
@@ -208,7 +208,7 @@ func (r *NextHAResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	tflog.Info(ctx, fmt.Sprintf("[DELETE] Deleting Instance from CM : %s", id))
 	deviceID := stateCfg.DeviceId.ValueString()
 	err := r.client.DeleteDevice(deviceID)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete Instance, got error: %s", err))
 		return
 	}

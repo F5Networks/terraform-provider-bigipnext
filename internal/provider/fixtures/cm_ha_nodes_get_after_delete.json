@@ -1,0 +1,17 @@
+[
+    {
+        "metadata": {
+            "id": "979423f5-0e8a-4994-98j92813umio21m3",
+            "machine_id": "972b14606bf74c8291e95298u3j89ddc",
+            "name": "central-manager-server"
+        },
+        "spec": {
+            "node_address": "10.123.111.88",
+            "node_type": "server"
+        },
+        "status": {
+            "ready": true,
+            "registration": "SUCCESSFUL"
+        }
+    }
+]

@@ -32,14 +32,12 @@ const (
 	uriCMFileUpload      = "/system/v1/files"
 	uriFast              = "/mgmt/shared/fast"
 	uriOpenAPI           = "/openapi"
-	uriInventory         = "/device/v1/inventory"
 	uriBackups           = "/device/v1/backups"
 	uriBackupTasks       = "/device/v1/backup-tasks"
 	uriRestoreTasks      = "/device/v1/restore-tasks"
 	uriCertificate       = "/api/v1/spaces/default/certificates"
+	uriLicenseToken      = "/api/v1/spaces/default/license/tokens"
 	uriCMUpgradeTask     = "/upgrade-manager/v1/upgrade-tasks"
-	uriAS3Root           = "/api/v1/spaces/default/appsvcs"
-	uriDiscoverInstance  = "/v1/spaces/default/instances"
 	// uriCertificateUpdate = "/api/certificate/v1/certificates"
 	uriGlobalResiliency    = "/api/v1/spaces/default/gslb/gr-groups"
 	uriGetGlobalResiliency = "/v1/spaces/default/gslb/gr-groups"
@@ -90,30 +88,6 @@ type CMError struct {
 	Error   error
 	Message string
 	Code    int
-}
-
-type DeviceInventoryList struct {
-	Embedded struct {
-		Devices []struct {
-			Links struct {
-				Self struct {
-					Href string `json:"href"`
-				} `json:"self"`
-			} `json:"_links"`
-			Address                    string    `json:"address"`
-			CertificateValidated       time.Time `json:"certificate_validated"`
-			CertificateValidationError string    `json:"certificate_validation_error"`
-			CertificateValidity        bool      `json:"certificate_validity"`
-			Hostname                   string    `json:"hostname"`
-			Id                         string    `json:"id"`
-			Mode                       string    `json:"mode"`
-			PlatformType               string    `json:"platform_type"`
-			Port                       int       `json:"port"`
-			Version                    string    `json:"version"`
-		} `json:"devices"`
-	} `json:"_embedded"`
-	Count int `json:"count"`
-	Total int `json:"total"`
 }
 
 // CmNewSession sets up connection to the BIG-IP Next CM system.
@@ -723,6 +697,111 @@ func (p *BigipNextCM) DeleteNextCMCertificate(id string) error {
 	return nil
 }
 
+type JWTRequestDraft struct {
+	NickName string `json:"nickName,omitempty"`
+	JWT      string `json:"jwt,omitempty"`
+}
+
+// https://clouddocs.f5.com/api/v1/spaces/default/license/tokens
+func (p *BigipNextCM) PostLicenseToken(config *JWTRequestDraft) ([]byte, error) {
+	licenseURL := fmt.Sprintf("%s%s", p.Host, uriLicenseToken)
+	f5osLogger.Info("[PostLicenseToken]", "URI Path", licenseURL)
+	body, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	respData, err := p.doCMRequest("POST", licenseURL, body)
+	if err != nil {
+		return nil, err
+	}
+	mapResp := make(map[string]interface{})
+	err = json.Unmarshal(respData, &mapResp)
+	if err != nil {
+		return nil, err
+	}
+	var tokenID string
+	f5osLogger.Info("[PostLicenseToken]", "Token Resp::", hclog.Fmt("%+v", string(respData)))
+	f5osLogger.Info("[PostLicenseToken]", "NewToken", mapResp["NewToken"])
+	if mapResp["NewToken"].(map[string]interface{})["nickName"] == config.NickName {
+		tokenID = mapResp["NewToken"].(map[string]interface{})["id"].(string)
+		return []byte(tokenID), nil
+	}
+	f5osLogger.Info("[PostLicenseToken]", "tokenID", tokenID)
+
+	return nil, nil
+}
+
+// https://clouddocs.f5.com/api/v1/spaces/default/license/tokens/verify
+func (p *BigipNextCM) PostLicenseTokenVerify(config *JWTRequestDraft) ([]byte, error) {
+	licenseURL := fmt.Sprintf("%s%s%s", p.Host, uriLicenseToken, "/verify")
+	f5osLogger.Info("[PostLicenseTokenVerify]", "URI Path", licenseURL)
+	jwtMap := make(map[string]interface{})
+	// map[string]interface{}
+	jwtMap["jwt"] = config.JWT
+	body, err := json.Marshal(jwtMap)
+	if err != nil {
+		return nil, err
+	}
+	respData, err := p.doCMRequest("POST", licenseURL, body)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[PostLicenseTokenVerify]", "Data::", hclog.Fmt("%+v", string(respData)))
+	return respData, nil
+}
+
+// api/v1/spaces/default/license/tokens
+func (p *BigipNextCM) GetLicenseTokens() ([]byte, error) {
+	// fileUrl := fmt.Sprintf("%s?filter=file_name+eq+'%s'", uriCMFileUpload, fileName)
+	licenseURL := fmt.Sprintf("%s%s", p.Host, uriLicenseToken)
+	f5osLogger.Info("[GetLicenseTokens]", "URI Path", licenseURL)
+	respData, err := p.doCMRequest("GET", licenseURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[GetLicenseTokens]", "Data::", hclog.Fmt("%+v", string(respData)))
+	return respData, nil
+}
+
+// https://clouddocs.f5.com/api/v1/spaces/default/license/tokens/{token_id}
+func (p *BigipNextCM) GetLicenseToken(tokenID string) (interface{}, error) {
+	licenseURL := fmt.Sprintf("%s%s/%s", p.Host, uriLicenseToken, tokenID)
+	f5osLogger.Info("[GetLicenseToken]", "URI Path", licenseURL)
+	respData, err := p.doCMRequest("GET", licenseURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	// {
+	//     "entitlement": "{\"compliance\":{\"digitalAssetComplianceStatus\":\"\",\"digitalAssetDaysRemainingInState\":0,\"digitalAssetExpiringSoon\":false,\"digitalAssetOutOfComplianceDate\":\"\",\"entitlementCheckStatus\":\"\",\"entitlementExpiryStatus\":\"\",\"telemetryStatus\":\"\",\"usageExceededStatus\":\"\"},\"documentType\":\"BIG-IP Next License\",\"documentVersion\":\"1\",\"digitalAsset\":{\"digitalAssetId\":\"\",\"digitalAssetName\":\"\",\"digitalAssetVersion\":\"\",\"telemetryId\":\"\"},\"entitlementMetadata\":{\"complianceEnforcements\":null,\"complianceStates\":null,\"enforcementBehavior\":\"\",\"enforcementPeriodDays\":0,\"entitlementModel\":\"\",\"expiringSoonNotificationDays\":0,\"entitlementExpiryDate\":\"0001-01-01T00:00:00Z\",\"gracePeriodDays\":0,\"nonContactPeriodHours\":0,\"nonFunctionalPeriodDays\":0,\"orderSubType\":\"\",\"orderType\":\"\"},\"subscriptionMetadata\":{\"programName\":\"big_ip_next_internal\",\"programTypeDescription\":\"big_ip_next_internal\",\"subscriptionId\":\"A-S00019374\",\"subscriptionExpiryDate\":\"2024-12-07T00:00:00.000Z\",\"subscriptionNotifyDays\":\"\"},\"RepositoryCertificateMetadata\":{\"sslCertificate\":\"\",\"privateKey\":\"\"}}",
+	//     "id": "69609dcd-b2d4-480e-bf06-6848556a1e59",
+	//     "nickName": "paid_test_jwt",
+	//     "orderSubType": "internal",
+	//     "orderType": "paid",
+	//     "subscriptionExpiry": "2024-12-07T00:00:00Z"
+	// }
+	// create map
+	var respMap map[string]interface{}
+	err = json.Unmarshal(respData, &respMap)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[GetLicenseToken]", "Data::", hclog.Fmt("%+v", respMap))
+	return respMap, nil
+}
+
+// https://clouddocs.f5.com/api/v1/spaces/default/license/tokens/{token_id}
+// delete request to delete license token
+func (p *BigipNextCM) DeleteLicenseToken(tokenID string) error {
+	licenseURL := fmt.Sprintf("%s%s/%s", p.Host, uriLicenseToken, tokenID)
+	f5osLogger.Info("[DeleteLicenseToken]", "URI Path", licenseURL)
+	respData, err := p.doCMRequest("DELETE", licenseURL, nil)
+	if err != nil {
+		return err
+	}
+	f5osLogger.Info("[DeleteLicenseToken]", "Data::", hclog.Fmt("%+v", string(respData)))
+	return nil
+}
+
 type ImportCertificateRequestDraft struct {
 	Name           string `json:"name,omitempty"`
 	KeyPassphrase  string `json:"key_passphrase,omitempty"`
@@ -1286,155 +1365,6 @@ func (p *BigipNextCM) ProxyFileUpload(proxyID, filePath string) ([]byte, error) 
 	}
 	f5osLogger.Info("[ProxyFileUpload]", "fileInfo", fileInfo)
 	return nil, nil
-}
-
-// /api/v1/spaces/default/appsvcs/documents
-func (p *BigipNextCM) PostAS3DraftDocument(config string) (string, error) {
-	as3DraftURL := fmt.Sprintf("%s%s%s", p.Host, uriAS3Root, "/documents")
-	f5osLogger.Info("[PostAS3DraftDocument]", "URI Path", as3DraftURL)
-	f5osLogger.Info("[PostAS3DraftDocument]", "Config", hclog.Fmt("%+v", config))
-	respData, err := p.doCMRequest("POST", as3DraftURL, []byte(config))
-	if err != nil {
-		return "", err
-	}
-	f5osLogger.Info("[PostAS3DraftDocument]", "Data::", hclog.Fmt("%+v", string(respData)))
-	//{"Message":"Application service created successfully","_links":{"self":{"href":"/api/v1/spaces/default/appsvcs/documents/3a220683-6527-4443-8da7-279680c21ac5"}},"id":"3a220683-6527-4443-8da7-279680c21ac5"}
-	respString := make(map[string]interface{})
-	err = json.Unmarshal(respData, &respString)
-	if err != nil {
-		return "", err
-	}
-	f5osLogger.Info("[PostAS3DraftDocument]", "Document Drart", hclog.Fmt("%+v", respString["id"].(string)))
-	return respString["id"].(string), nil
-}
-
-// /api/v1/spaces/default/appsvcs/documents/3a220683-6527-4443-8da7-279680c21ac5
-func (p *BigipNextCM) GetAS3DraftDocument(docID string) ([]byte, error) {
-	as3DraftURL := fmt.Sprintf("%s%s%s/%s", p.Host, uriAS3Root, "/documents", docID)
-	f5osLogger.Info("[GetAS3DraftDocument]", "URI Path", as3DraftURL)
-	respData, err := p.doCMRequest("GET", as3DraftURL, nil)
-	if err != nil {
-		return []byte(""), err
-	}
-	f5osLogger.Info("[GetAS3DraftDocument]", "Data::", hclog.Fmt("%+v", string(respData)))
-	return respData, nil
-}
-
-func (p *BigipNextCM) PutAS3DraftDocument(docID, config string) error {
-	as3DraftURL := fmt.Sprintf("%s%s%s/%s", p.Host, uriAS3Root, "/documents", docID)
-	f5osLogger.Info("[PutAS3DraftDocument]", "URI Path", as3DraftURL)
-	f5osLogger.Info("[PutAS3DraftDocument]", "Config", hclog.Fmt("%+v", config))
-	respData, err := p.doCMRequest("PUT", as3DraftURL, []byte(config))
-	if err != nil {
-		return err
-	}
-	f5osLogger.Info("[PutAS3DraftDocument]", "Data::", hclog.Fmt("%+v", string(respData)))
-	return nil
-}
-
-// /api/v1/spaces/default/appsvcs/documents/3a220683-6527-4443-8da7-279680c21ac5
-func (p *BigipNextCM) DeleteAS3DraftDocument(docID string) error {
-	as3DraftURL := fmt.Sprintf("%s%s%s/%s", p.Host, uriAS3Root, "/documents", docID)
-	f5osLogger.Info("[DeleteAS3DraftDocument]", "URI Path", as3DraftURL)
-	respData, err := p.doCMRequest("DELETE", as3DraftURL, nil)
-	if err != nil {
-		return err
-	}
-	f5osLogger.Info("[DeleteAS3DraftDocument]", "Data::", hclog.Fmt("%+v", string(respData)))
-	return nil
-}
-
-// https://clouddocs.f5.com/api/v1/spaces/default/appsvcs/documents/{document-id}/deployments
-func (p *BigipNextCM) CMAS3DeployNext(draftID, target string, timeOut int) (string, error) {
-	as3DeployUrl := fmt.Sprintf("%s%s%s/%s/%s", p.Host, uriAS3Root, "/documents", draftID, "deployments")
-	f5osLogger.Info("[CMAS3DeployNext]", "URI Path", as3DeployUrl)
-	as3Json := make(map[string]interface{})
-	as3Json["target"] = target
-	as3data, err := json.Marshal(as3Json)
-	if err != nil {
-		return "", err
-	}
-	f5osLogger.Info("[CMAS3DeployNext]", "Data::", hclog.Fmt("%+v", string(as3data)))
-	respData, err := p.doCMRequest("POST", as3DeployUrl, as3data)
-	if err != nil {
-		return "", err
-	}
-	f5osLogger.Info("[CMAS3DeployNext]", "Data::", hclog.Fmt("%+v", string(respData)))
-	//{ "Message": "Deployment task created successfully", "_links": { "self": { "href": "/declare/1a5a6049-8220-483a-8cbc-275a4b190d35/deployments/2ceb048a-0ee6-4a2d-8952-cd15583bb5e8" } }, "id": "2ceb048a-0ee6-4a2d-8952-cd15583bb5e8" }
-	respString := make(map[string]interface{})
-	err = json.Unmarshal(respData, &respString)
-	if err != nil {
-		return "", err
-	}
-	f5osLogger.Info("[CMAS3DeployNext]", "Deployment Task", hclog.Fmt("%+v", respString["id"].(string)))
-	_, err = p.getAS3DeploymentTaskStatus(draftID, respString["id"].(string), timeOut)
-	if err != nil {
-		return "", err
-	}
-	return respString["id"].(string), nil
-}
-
-// https://clouddocs.f5.com/api/v1/spaces/default/appsvcs/documents/{document-id}/deployments/{deployment-id}
-func (p *BigipNextCM) GetAS3DeploymentTaskStatus(docID, deployID string) (interface{}, error) {
-	as3DeployUrl := fmt.Sprintf("%s%s%s/%s/%s/%s", p.Host, uriAS3Root, "/documents", docID, "deployments", deployID)
-	f5osLogger.Info("[GetAS3DeploymentTaskStatus]", "URI Path", as3DeployUrl)
-	return p.getAS3DeploymentTaskStatus(docID, deployID, 60)
-}
-
-// https://clouddocs.f5.com/api/v1/spaces/default/appsvcs/documents/{document-id}/deployments/{deployment-id}
-func (p *BigipNextCM) getAS3DeploymentTaskStatus(docID, deployID string, timeOut int) (interface{}, error) {
-	as3DeployUrl := fmt.Sprintf("%s%s%s/%s/%s/%s", p.Host, uriAS3Root, "/documents", docID, "deployments", deployID)
-	f5osLogger.Info("[getAS3DeploymentTaskStatus]", "URI Path", as3DeployUrl)
-	responseData := make(map[string]interface{})
-	timeout := time.Duration(timeOut) * time.Second
-	endtime := time.Now().Add(timeout)
-outerfor:
-	for time.Now().Before(endtime) {
-		respData, err := p.doCMRequest("GET", as3DeployUrl, nil)
-		if err != nil {
-			return nil, err
-		}
-		err = json.Unmarshal(respData, &responseData)
-		if err != nil {
-			return nil, err
-		}
-		f5osLogger.Info("[getAS3DeploymentTaskStatus]", "Status:", hclog.Fmt("%+v", responseData["records"].([]interface{})[0].(map[string]interface{})["status"].(string)))
-		for _, v := range responseData["records"].([]interface{}) {
-			if v.(map[string]interface{})["status"].(string) == "failed" {
-				return nil, fmt.Errorf("%v", v.(map[string]interface{})["failure_reason"].(string))
-			}
-			if v.(map[string]interface{})["status"].(string) != "completed" {
-				time.Sleep(5 * time.Second)
-				continue
-			} else {
-				break outerfor
-			}
-		}
-	}
-	f5osLogger.Info("[getAS3DeploymentTaskStatus]", "Response Result:", hclog.Fmt("%+v", responseData["response"]))
-	// .(map[string]interface{})["results"].([]interface{})[0].(map[string]interface{})["status"].(string)))
-	// if responseData["records"].([]interface{})[0].(map[string]interface{})["status"].(string) != "completed" {
-	// 	return nil, fmt.Errorf("AS3 service deployment failed with :%+v", responseData["records"].([]interface{})[0].(map[string]interface{})["status"].(string))
-	// }
-	byteData, err := json.Marshal(responseData["app_data"].(map[string]interface{}))
-	if err != nil {
-		return nil, err
-	}
-	// appData := strings.Join([]string{strings.TrimSpace(string(byteData))}, "")
-	return string(byteData), nil
-}
-
-// /api/v1/spaces/default/appsvcs/documents/83ff823d-477c-4666-a4c7-6b0563bb7be6/deployments/f1f55f4b-5bad-4f67-8ac2-83551502a7c8
-func (p *BigipNextCM) DeleteAS3DeploymentTask(docID string) error {
-	// as3DeployUrl := fmt.Sprintf("%s%s%s/%s/%s/%s", p.Host, uriAS3Root, "/documents", docID, "deployments", deployID)
-	as3DeployUrl := fmt.Sprintf("%s%s%s/%s", p.Host, uriAS3Root, "/documents", docID)
-	f5osLogger.Info("[DeleteAS3DeploymentTask]", "URI Path", as3DeployUrl)
-	respData, err := p.doCMRequest("DELETE", as3DeployUrl, nil)
-	if err != nil {
-		return err
-	}
-	f5osLogger.Info("[DeleteAS3DeploymentTask]", "Data::", hclog.Fmt("%+v", string(respData)))
-	return nil
 }
 
 type DiscoverInstanceRequest struct {
@@ -2398,145 +2328,6 @@ type TenantBackupRestoreTaskStatus struct {
 	Status          string `json:"status,omitempty"`
 }
 
-// /device/v1/inventory?filter=address+eq+'10.10.10.10'
-
-func (p *BigipNextCM) GetDeviceIdByIp(deviceIp string) (deviceId *string, err error) {
-	deviceUrl := fmt.Sprintf("%s?filter=address+eq+'%s'", uriInventory, deviceIp)
-	f5osLogger.Debug("[GetDeviceInventory]", "URI Path", deviceUrl)
-	bigipNextDevice := &DeviceInventoryList{}
-	respData, err := p.GetCMRequest(deviceUrl)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Debug("[GetDeviceIdByIp]", "Requested BIG-IP Next:", hclog.Fmt("%+v", string(respData)))
-	json.Unmarshal(respData, bigipNextDevice)
-	if bigipNextDevice.Count == 1 {
-		deviceId := bigipNextDevice.Embedded.Devices[0].Id
-		return &deviceId, nil
-	}
-	return nil, fmt.Errorf("the requested device:%s, was not found", deviceIp)
-}
-
-func (p *BigipNextCM) GetDeviceInfoByIp(deviceIp string) (deviceInfo interface{}, err error) {
-	deviceUrl := fmt.Sprintf("%s?filter=address+eq+'%s'", uriInventory, deviceIp)
-	f5osLogger.Debug("[GetDeviceInfoByIp]", "URI Path", deviceUrl)
-	respData, err := p.GetCMRequest(deviceUrl)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Debug("[GetDeviceInfoByIp]", "Requested BIG-IP Next:", hclog.Fmt("%+v", string(respData)))
-	deviceList := make(map[string]interface{})
-	json.Unmarshal(respData, &deviceList)
-	if len(deviceList["_embedded"].(map[string]interface{})["devices"].([]interface{})) == 1 {
-		deviceInfo := deviceList["_embedded"].(map[string]interface{})["devices"].([]interface{})[0]
-		return deviceInfo, nil
-	}
-	return nil, fmt.Errorf("the requested device:%s, was not found", deviceIp)
-}
-
-func (p *BigipNextCM) GetDeviceIdByHostname(deviceHostname string) (deviceId *string, err error) {
-	deviceUrl := fmt.Sprintf("%s?filter=hostname+eq+'%s'", uriInventory, deviceHostname)
-	f5osLogger.Info("[GetDeviceIdByHostname]", "URI Path", deviceUrl)
-	bigipNextDevice := &DeviceInventoryList{}
-	respData, err := p.GetCMRequest(deviceUrl)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Info("[GetDeviceIdByHostname]", "Resp BIG-IP Next:", hclog.Fmt("%+v", string(respData)))
-	err = json.Unmarshal(respData, &bigipNextDevice)
-	if err != nil {
-		return nil, err
-	}
-
-	if bigipNextDevice.Count == 1 {
-		deviceId := bigipNextDevice.Embedded.Devices[0].Id
-		return &deviceId, nil
-	}
-	return nil, fmt.Errorf("the requested device:%s, was not found", deviceHostname)
-}
-
-func (p *BigipNextCM) GetDeviceInfoByID(deviceId string) (interface{}, error) {
-	// deviceUrl := fmt.Sprintf("%s/%s", uriInventory, deviceId)
-	deviceUrl := fmt.Sprintf("%s/%s", uriDiscoverInstance, deviceId)
-	url := fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, deviceUrl)
-	f5osLogger.Info("[GetDeviceInfoByID]", "Request path", hclog.Fmt("%+v", url))
-	dataResource, err := p.doCMRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Info("[GetDeviceInfoByID]", "Data::", hclog.Fmt("%+v", string(dataResource)))
-	var deviceInfo interface{}
-	err = json.Unmarshal(dataResource, &deviceInfo)
-	if err != nil {
-		return nil, err
-	}
-	return deviceInfo, nil
-}
-
-// delete device from CM
-func (p *BigipNextCM) DeleteDevice(deviceId string) error {
-	// deviceUrl := fmt.Sprintf("%s/%s", uriInventory, deviceId)
-	deviceUrl := fmt.Sprintf("%s/%s", uriDiscoverInstance, deviceId)
-	url := fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, deviceUrl)
-	f5osLogger.Info("[DeleteDevice]", "Request path", hclog.Fmt("%+v", url))
-	//{"save_backup":false}
-	var data = []byte(`{"save_backup":false}`)
-	respData, err := p.doCMRequest("DELETE", url, data)
-	// respData, err := p.DeleteCMRequest("DELETE", deviceUrl, data)
-	if err != nil {
-		return err
-	}
-	// {"_links":{"self":{"href":"/v1/deletion-tasks/02752890-5660-450c-ace9-b8e0a86a15ad"}},"path":"/v1/deletion-tasks/02752890-5660-450c-ace9-b8e0a86a15ad"}
-	respString := make(map[string]interface{})
-	err = json.Unmarshal(respData, &respString)
-	if err != nil {
-		return err
-	}
-	f5osLogger.Info("[DeleteDevice]", "Task Path", hclog.Fmt("%+v", respString["path"].(string)))
-	//get task id from path
-	pathList := strings.Split(respString["path"].(string), "/")
-	taskId := pathList[len(pathList)-1]
-	f5osLogger.Info("[DeleteDevice]", "Task Id", hclog.Fmt("%+v", taskId))
-	err = p.deleteTaskStatus(taskId)
-	if err != nil {
-		return err
-	}
-	f5osLogger.Info("[DeleteDevice]", "Data::", hclog.Fmt("%+v", string(respData)))
-	return nil
-}
-
-// https://10.10.10.10/api/device/v1/deletion-tasks/02752890-5660-450c-ace9-b8e0a86a15ad
-// verify device deletion task status
-func (p *BigipNextCM) deleteTaskStatus(taskID string) error {
-	deviceUrl := fmt.Sprintf("%s/%s", "/device/v1/deletion-tasks", taskID)
-	url := fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, deviceUrl)
-	f5osLogger.Info("[deleteTaskStatus]", "Request path", hclog.Fmt("%+v", url))
-	timeout := 360 * time.Second
-	endtime := time.Now().Add(timeout)
-	respString := make(map[string]interface{})
-	for time.Now().Before(endtime) {
-		respData, err := p.doCMRequest("GET", url, nil)
-		if err != nil {
-			return err
-		}
-		f5osLogger.Debug("[deleteTaskStatus]", "Data::", hclog.Fmt("%+v", string(respData)))
-		// {"_links":{"self":{"href":"/v1/deletion-tasks/642d5964-8cd9-4881-9086-1ed5ca682101"}},"address":"10.146.168.20","created":"2023-11-28T07:55:50.924918Z","device_id":"8d6c8c85-1738-4a34-b57b-d3644a2ecfcc","id":"642d5964-8cd9-4881-9086-1ed5ca682101","state":"factoryResetInstance","status":"running"}
-		err = json.Unmarshal(respData, &respString)
-		if err != nil {
-			return err
-		}
-		f5osLogger.Info("[deleteTaskStatus]", "Task Status", hclog.Fmt("%+v", respString["status"].(string)))
-		if respString["status"].(string) == "completed" {
-			return nil
-		}
-		if respString["status"].(string) == "failed" {
-			return fmt.Errorf("%s", respString)
-		}
-		time.Sleep(10 * time.Second)
-	}
-	return fmt.Errorf("%s", respString)
-}
-
 func (p *BigipNextCM) backupTenantTaskStatus(taskidPath string, timeOut int) (*TenantBackupRestoreTaskStatus, error) {
 	taskData := &TenantBackupRestoreTaskStatus{}
 	backupUrl := fmt.Sprintf("%s%s", "/device", taskidPath)
@@ -2671,12 +2462,8 @@ func (p *BigipNextCM) DeleteBackupFile(fileName *string) error {
 	return nil
 }
 
-// https://10.192.75.131/api/device/v1/providers
-// https://10.145.75.237
-
 func (p *BigipNextCM) GetDeviceProviders() ([]byte, error) {
-	uriProviders := "/device/v1/providers"
-	// providerUrl := fmt.Sprintf("%s", uriProviders)
+	// uriProviders := "/device/v1/providers"
 	f5osLogger.Debug("[GetDeviceProviders]", "URI Path", uriProviders)
 	respData, err := p.GetCMRequest(uriProviders)
 	if err != nil {
@@ -2698,115 +2485,6 @@ type DeviceProviderReq struct {
 		} `json:"authentication,omitempty"`
 		CertFingerprint string `json:"cert_fingerprint,omitempty"`
 	} `json:"connection,omitempty"`
-}
-type DeviceProviderResponse struct {
-	Connection struct {
-		Authentication struct {
-			Type     string `json:"type,omitempty"`
-			Username string `json:"username,omitempty"`
-		} `json:"authentication,omitempty"`
-		Host string `json:"host,omitempty"`
-	} `json:"connection,omitempty"`
-	Id   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	Type string `json:"type,omitempty"`
-}
-
-// https://10.145.75.237/api/device/v1/providers/vsphere
-// Create POST call to create device provider
-func (p *BigipNextCM) PostDeviceProvider(config interface{}) (*DeviceProviderResponse, error) {
-	uriProviders := "/device/v1/providers/vsphere"
-	if config.(*DeviceProviderReq).Type == "VELOS" || config.(*DeviceProviderReq).Type == "RSERIES" {
-		uriProviders = "/device/v1/providers/f5os"
-		//uriProviders = "/v1/spaces/default/providers/f5os"
-	}
-	providerUrl := fmt.Sprintf("%s", uriProviders)
-	f5osLogger.Debug("[PostDeviceProvider]", "URI Path", providerUrl)
-	f5osLogger.Debug("[PostDeviceProvider]", "Config", hclog.Fmt("%+v", config))
-	body, err := json.Marshal(config)
-	if err != nil {
-		return nil, err
-	}
-	respData, err := p.PostCMRequest(providerUrl, body)
-	if err != nil {
-		if strings.Contains(err.Error(), "cert_fingerprint") {
-			config.(*DeviceProviderReq).Connection.CertFingerprint = strings.ReplaceAll(strings.Split(string(strings.Split(err.Error(), ",")[1]), ":")[2], "\"", "")
-			return p.PostDeviceProvider(config)
-		}
-		return nil, err
-	}
-	f5osLogger.Debug("[PostDeviceProvider]", "Resp::", hclog.Fmt("%+v", string(respData)))
-	var providerResp DeviceProviderResponse
-	err = json.Unmarshal(respData, &providerResp)
-	if err != nil {
-		return nil, err
-	}
-	return &providerResp, nil
-}
-
-func (p *BigipNextCM) UpdateDeviceProvider(providerId string, config interface{}) (*DeviceProviderResponse, error) {
-	uriProviders := "/device/v1/providers/vsphere"
-	if config.(*DeviceProviderReq).Type == "VELOS" || config.(*DeviceProviderReq).Type == "RSERIES" {
-		uriProviders = "/device/v1/providers/f5os"
-		//uriProviders = "/v1/spaces/default/providers/f5os"
-	}
-	providerUrl := fmt.Sprintf("%s/%s", uriProviders, providerId)
-	f5osLogger.Debug("[UpdateDeviceProvider]", "URI Path", providerUrl)
-	f5osLogger.Debug("[UpdateDeviceProvider]", "Config", hclog.Fmt("%+v", config))
-	body, err := json.Marshal(config)
-	if err != nil {
-		return nil, err
-	}
-	respData, err := p.PutCMRequest(providerUrl, body)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Debug("[UpdateDeviceProvider]", "Resp::", hclog.Fmt("%+v", string(respData)))
-	var providerResp DeviceProviderResponse
-	err = json.Unmarshal(respData, &providerResp)
-	if err != nil {
-		return nil, err
-	}
-	return &providerResp, nil
-}
-
-func (p *BigipNextCM) GetDeviceProvider(providerId, providerType string) (*DeviceProviderResponse, error) {
-	uriProviders := "/device/v1/providers/vsphere"
-	if stringToUppercase(providerType) == "VELOS" || stringToUppercase(providerType) == "RSERIES" {
-		uriProviders = "/device/v1/providers/f5os"
-		//uriProviders = "/v1/spaces/default/providers/f5os"
-	}
-	providerUrl := fmt.Sprintf("%s/%s", uriProviders, providerId)
-	f5osLogger.Debug("[GetDeviceProvider]", "URI Path", providerUrl)
-	respData, err := p.GetCMRequest(providerUrl)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Info("[GetDeviceProvider]", "Data::", hclog.Fmt("%+v", string(respData)))
-	var providerResp DeviceProviderResponse
-	err = json.Unmarshal(respData, &providerResp)
-	if err != nil {
-		return nil, err
-	}
-	return &providerResp, nil
-}
-
-// https://10.145.75.237/api/device/v1/providers/vsphere/85bc71c3-0bfc-4b28-bb86-13f7e1c1d7af
-// Create function to delete device provider using provider id
-func (p *BigipNextCM) DeleteDeviceProvider(providerId, providerType string) ([]byte, error) {
-	uriProviders := "/device/v1/providers/vsphere"
-	if stringToUppercase(providerType) == "VELOS" || stringToUppercase(providerType) == "RSERIES" {
-		uriProviders = "/device/v1/providers/f5os"
-		//uriProviders = "/v1/spaces/default/providers/f5os"
-	}
-	providerUrl := fmt.Sprintf("%s/%s", uriProviders, providerId)
-	f5osLogger.Debug("[DeleteDeviceProvider]", "URI Path", providerUrl)
-	respData, err := p.DeleteCMRequest(providerUrl)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Info("[DeleteDeviceProvider]", "Data::", hclog.Fmt("%+v", string(respData)))
-	return respData, nil
 }
 
 func stringToUppercase(str string) string {
@@ -2958,253 +2636,21 @@ func stringToUppercase(str string) string {
 // 	return &cmReqDeviceInstance, nil
 // }
 
-type CMReqRseriesProperties struct {
-	TenantImageName      string `json:"tenant_image_name"`
-	TenantDeploymentFile string `json:"tenant_deployment_file"`
-	VlanIds              []int  `json:"vlan_ids"`
-	DiskSize             int    `json:"disk_size"`
-	CpuCores             int    `json:"cpu_cores"`
-	// ManagementAddress      string   `json:"management_address"`
-	// ManagementNetworkWidth int      `json:"management_network_width"`
-	// L1Networks             []string `json:"l1Networks"`
-	// ManagementCredentials  struct {
-	// 	Username string `json:"username"`
-	// 	Password string `json:"password"`
-	// } `json:"management_credentials"`
-	// InstanceOneTimePassword string `json:"instance_one_time_password"`
-	// Hostname                string `json:"hostname"`
-}
+// [
+//   {
+//     "digitalAssetId": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+//     "jwtId": "d390f1ee-6c54-4b01-90e6-d701748f0851"
+//   }
+// ]
 
-type CMReqVelosProperties struct {
-	TenantImageName      string `json:"tenant_image_name"`
-	TenantDeploymentFile string `json:"tenant_deployment_file"`
-	VlanIds              []int  `json:"vlan_ids"`
-	SlotIds              []int  `json:"slot_ids"`
-	DiskSize             int    `json:"disk_size"`
-	CpuCores             int    `json:"cpu_cores"`
-}
-
-type CMReqDeviceInstance struct {
-	TemplateName string `json:"template_name,omitempty"`
-	Parameters   struct {
-		InstantiationProvider         []CMReqInstantiationProvider         `json:"instantiation_provider,omitempty"`
-		VSphereProperties             []CMReqVsphereProperties             `json:"vSphere_properties,omitempty"`
-		VsphereNetworkAdapterSettings []CMReqVsphereNetworkAdapterSettings `json:"vsphere_network_adapter_settings,omitempty"`
-		RseriesProperties             []CMReqRseriesProperties             `json:"rseries_properties,omitempty"`
-		VelosProperties               []CMReqVelosProperties               `json:"velos_properties,omitempty"`
-		DnsServers                    []string                             `json:"dns_servers,omitempty"`
-		NtpServers                    []string                             `json:"ntp_servers,omitempty"`
-		ManagementAddress             string                               `json:"management_address,omitempty"`
-		ManagementNetworkWidth        int                                  `json:"management_network_width,omitempty"`
-		DefaultGateway                string                               `json:"default_gateway,omitempty"`
-		L1Networks                    []CMReqL1Networks                    `json:"l1Networks,omitempty"`
-		ManagementCredentialsUsername string                               `json:"management_credentials_username,omitempty"`
-		ManagementCredentialsPassword string                               `json:"management_credentials_password,omitempty"`
-		InstanceOneTimePassword       string                               `json:"instance_one_time_password,omitempty"`
-		Hostname                      string                               `json:"hostname,omitempty"`
-	} `json:"parameters,omitempty"`
-}
-
-type CMReqInstantiationProvider struct {
-	Id   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
-	Type string `json:"type,omitempty"`
-}
-type CMReqVsphereProperties struct {
-	NumCpus               int    `json:"num_cpus,omitempty"`
-	Memory                int    `json:"memory,omitempty"`
-	DatacenterName        string `json:"datacenter_name,omitempty"`
-	ClusterName           string `json:"cluster_name,omitempty"`
-	DatastoreName         string `json:"datastore_name,omitempty"`
-	ResourcePoolName      string `json:"resource_pool_name,omitempty"`
-	VsphereContentLibrary string `json:"vsphere_content_library,omitempty"`
-	VmTemplateName        string `json:"vm_template_name,omitempty"`
-}
-type CMReqVsphereNetworkAdapterSettings struct {
-	InternalNetworkName       string `json:"internal_network_name,omitempty"`
-	HaDataPlaneNetworkName    string `json:"ha_data_plane_network_name,omitempty"`
-	HaControlPlaneNetworkName string `json:"ha_control_plane_network_name,omitempty"`
-	MgmtNetworkName           string `json:"mgmt_network_name,omitempty"`
-	ExternalNetworkName       string `json:"external_network_name,omitempty"`
-}
-
-type CMReqSelfIps struct {
-	Address    string `json:"address,omitempty"`
-	DeviceName string `json:"deviceName,omitempty"`
-}
-
-type CMReqVlans struct {
-	SelfIps    []CMReqSelfIps `json:"selfIps,omitempty"`
-	Name       string         `json:"name,omitempty"`
-	Tag        int            `json:"tag,omitempty"`
-	DefaultVrf bool           `json:"defaultVrf,omitempty"`
-}
-
-type CMReqL1Networks struct {
-	Vlans  []CMReqVlans `json:"vlans,omitempty"`
-	L1Link struct {
-		LinkType string `json:"linkType,omitempty"`
-		Name     string `json:"name,omitempty"`
-	} `json:"l1Link,omitempty"`
-	Name string `json:"name,omitempty"`
-}
-
-type CMReqDeviceInstanceBackup struct {
-	TemplateName string `json:"template_name,omitempty"`
-	Parameters   struct {
-		InstantiationProvider         []CMReqInstantiationProvider         `json:"instantiation_provider,omitempty"`
-		VSphereProperties             []CMReqVsphereProperties             `json:"vSphere_properties,omitempty"`
-		VsphereNetworkAdapterSettings []CMReqVsphereNetworkAdapterSettings `json:"vsphere_network_adapter_settings,omitempty"`
-		DnsServers                    []string                             `json:"dns_servers,omitempty"`
-		NtpServers                    []string                             `json:"ntp_servers,omitempty"`
-		ManagementAddress             string                               `json:"management_address,omitempty"`
-		ManagementNetworkWidth        int                                  `json:"management_network_width,omitempty"`
-		DefaultGateway                string                               `json:"default_gateway,omitempty"`
-		L1Networks                    []CMReqL1Networks                    `json:"l1Networks,omitempty"`
-		ManagementCredentialsUsername string                               `json:"management_credentials_username,omitempty"`
-		ManagementCredentialsPassword string                               `json:"management_credentials_password,omitempty"`
-		InstanceOneTimePassword       string                               `json:"instance_one_time_password,omitempty"`
-		Hostname                      string                               `json:"hostname,omitempty"`
-	} `json:"parameters,omitempty"`
-}
-
-func (p *BigipNextCM) PostDeviceInstance(config *CMReqDeviceInstance, timeout int) ([]byte, error) {
-	uriInstances := "/device/v1/instances"
-	instanceUrl := fmt.Sprintf("%s", uriInstances)
-	f5osLogger.Debug("[PostDeviceInstance]", "URI Path", instanceUrl)
-	f5osLogger.Debug("[PostDeviceInstance]", "Config", hclog.Fmt("%+v", config))
-	body, err := json.Marshal(config)
-	if err != nil {
-		return nil, err
-	}
-	respData, err := p.PostCMRequest(instanceUrl, body)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Debug("[PostDeviceInstance]", "Data::", hclog.Fmt("%+v", string(respData)))
-	// {"_links":{"self":{"href":"/v1/instances/tasks/deacca61-3162-4672-aac8-2d6bd2b69438"}},"path":"/v1/instances/tasks/deacca61-3162-4672-aac8-2d6bd2b69438"}
-	respString := make(map[string]interface{})
-	err = json.Unmarshal(respData, &respString)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Debug("[PostDeviceInstance]", "Task Path", hclog.Fmt("%+v", respString["path"].(string)))
-	// split path string to get task id
-	taskId := strings.Split(respString["path"].(string), "/")
-	f5osLogger.Info("[PostDeviceInstance]", "Task Id", hclog.Fmt("%+v", taskId[len(taskId)-1]))
-	// get task status
-	taskData, err := p.GetDeviceInstanceTaskStatus(taskId[len(taskId)-1], timeout)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Info("[PostDeviceInstance]", "Task Status", hclog.Fmt("%+v", taskData))
-	return respData, nil
-}
-
-// /v1/instances/tasks/deacca61-3162-4672-aac8-2d6bd2b69438
-// get device instance task status
-func (p *BigipNextCM) GetDeviceInstanceTaskStatus(taskID string, timeOut int) (map[string]interface{}, error) {
-	// taskData := &DeviceInstanceTaskStatus{}
-	taskData := make(map[string]interface{})
-	instanceUrl := fmt.Sprintf("%s%s", "/device/v1/instances/tasks/", taskID)
-	f5osLogger.Debug("[GetDeviceInstanceTaskStatus]", "URI Path", instanceUrl)
-	// var timeout time.Duration
-	timeout := time.Duration(timeOut) * time.Second
-	endtime := time.Now().Add(timeout)
-	for time.Now().Before(endtime) {
-		respData, err := p.GetCMRequest(instanceUrl)
-		if err != nil {
-			return nil, err
+func Contains[T comparable](s []T, e T) bool {
+	for _, v := range s {
+		if v == e {
+			return true
 		}
-		f5osLogger.Info("[GetDeviceInstanceTaskStatus]", "Task Status:\t", hclog.Fmt("%+v", string(respData)))
-		err = json.Unmarshal(respData, &taskData)
-		if err != nil {
-			return nil, err
-		}
-		if taskData["status"] == "completed" {
-			return taskData, nil
-		}
-		if taskData["status"] == "failed" {
-			return nil, fmt.Errorf("%s", taskData["failure_reason"])
-		}
-		inVal := timeOut / 10
-		time.Sleep(time.Duration(inVal) * time.Second)
 	}
-	return nil, fmt.Errorf("task Status is still in :%+v within timeout period of:%+v", taskData["status"], timeout)
+	return false
 }
-
-// // convert a string to byte array
-// func stringToByteArray(str string) []byte {
-// 	return []byte(str)
-// }
-
-func (p *BigipNextCM) GetDeviceProviderIDByHostname(hostname string) (interface{}, error) {
-	uriProviders := "/device/v1/providers"
-	providerUrl := fmt.Sprintf("%s?filter=name+eq+'%s'", uriProviders, hostname)
-	f5osLogger.Info("[GetDeviceProviderIDByHostname]", "URI Path", providerUrl)
-	respData, err := p.GetCMRequest(providerUrl)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Info("[GetDeviceProviderIDByHostname]", "Requested Providers:", hclog.Fmt("%+v", string(respData)))
-	var providerResp []interface{}
-	err = json.Unmarshal(respData, &providerResp)
-	if err != nil {
-		return nil, err
-	}
-	if len(providerResp) == 1 && providerResp[0].(map[string]interface{})["provider_name"].(string) == hostname {
-		return providerResp[0].(map[string]interface{})["provider_id"].(string), nil
-	}
-	return nil, fmt.Errorf("failed to get ID for provider: %+v", hostname)
-}
-
-// https://10.145.75.237/api/llm/license/a2064013-659d-4de0-8c22-773d21414885/status
-// get device license status
-func (p *BigipNextCM) GetDeviceLicenseStatus(deviceId *string) ([]byte, error) {
-	uriLicense := "/llm/license"
-	licenseUrl := fmt.Sprintf("%s/%s/status", uriLicense, *deviceId)
-	f5osLogger.Debug("[GetDeviceLicenseStatus]", "URI Path", licenseUrl)
-	respData, err := p.GetCMRequest(licenseUrl)
-	if err != nil {
-		return nil, err
-	}
-	f5osLogger.Debug("[GetDeviceLicenseStatus]", "Requested License Status:", hclog.Fmt("%+v", string(respData)))
-	return respData, nil
-}
-
-func encodeUrl(urlName string) string {
-	// Encode the urlName
-	urlNameEncoded := url.QueryEscape(urlName)
-	return urlNameEncoded
-}
-
-// ####################
-// POST
-// https://10.145.75.237/api/llm/tasks/token/verify
-// create post call to token verify
-
-// func (p *BigipNextCM) PostTokenVerify(config *TokenVerify) ([]byte, error) {
-// 	uriToken := "/llm/tasks/token/verify"
-// 	tokenUrl := fmt.Sprintf("%s", uriToken)
-// 	f5osLogger.Debug("[PostTokenVerify]", "URI Path", tokenUrl)
-// 	f5osLogger.Debug("[PostTokenVerify]", "Config", hclog.Fmt("%+v", config))
-// 	body, err := json.Marshal(config)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	respData, err := p.PostCMRequest(tokenUrl, body)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	f5osLogger.Debug("[PostTokenVerify]", "Data::", hclog.Fmt("%+v", string(respData)))
-// 	return respData, nil
-// }
-
-// create TokenVerify struct with below payload
-//{"jwt":"eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCIsImtpZCI6InYxIiwiamt1IjoiaHR0cHM6Ly9wcm9kdWN0LmFwaXMuZjUuY29tL2VlL3Y.eyJzdWIiOiJGTkktNzYyNmVmM2QtNTc4ZC00MGU1LWI5YjYtZDI3ZmRkZTRlODBkIiwiaWF0IjoxNjQ3NDQ1NjMxLCJpc3MiOiJGNSBJbmMuIiwiYXVkIjoidXJuOmY1OnRlZW0iLCJqdGkiOiI1N2VmM2ZmMC1hNTQwLTExZWMtYjE3Ny1lYmRiMzNmYmNjZmYiLCJmNV9vcmRlcl90eXBlIjoiZXZhbCIsImY1X29yZGVyX3N1YnR5cGUiOiJ0cmlhbCJ9.cBfrqxn09rTGiSKpIu6PpDZoCKOY2BRtm6Q9xfAf0iv6IdY3YZn3iqSR1Qrl5Wgwx1uEDsNasFELdvynAQ1vDTG0QNFgSR5HKC9rFS_QBXK8G2XZuJr_XLQxKeOztzbYTn1V2aoVBeZXawcQG9YVu_MXdkDG2LL7LhWgXWVyckuF99cW1ndwsbucx2nXW7-fcU_TsDnTryt8nwQi0hiw-0DlYXEVYfHxndg_JNRlNtKL8aAgf5rUACrhQTVag7in_UuGV7jhKIk5SjVR2-lUnKA2w3Oo6WCeJv9DyIULWfkJwasBlyF9hiYiMUiTyaW7MK-Kx0w9IamlYy0KBzepFvUsUfYIsRJUnqjFHn_S1Rcg7cGiJyl4XUtVP0LKB80xfxYN2ThAiW7usNSAchepSbUXHatxyWWZavxTu1B48tQmiwBb6_OFSxw_GP1SOlE5v539uObPsJ7cTA-OiWby3VgaU4SgHuLg_ITlwcSc3FSZnQY4qYcu9k8nbhbx-2UmN6C0lkaW5ha2xe08kJWXdPzQQ3Y1bJb9T5IXWeGdGb_ppqHsV7LzuEVZJUACOVFvqXDnJPXggLnI8G_w1aCWLWpxZeRpY7iqWjVGzD5cD_eAwLYoSEUtSyG83dbRSZeDXFQSkZ6ZuLz94iySLZPR98Mi0rLfwpRlkIXBXZ_ZMDs"}
-
-// OUTPUT: {"isValid":true}
-// ####################
 
 // ####################
 // POST
@@ -3756,6 +3202,116 @@ func (p *BigipNextCM) DeleteCMHANodes(deleteNodes []string) {
 			time.Sleep(10 * time.Second)
 		}
 	}
+}
+
+type CMExternalStorageUser struct {
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+type CMExternalStorage struct {
+	StorageType      string                 `json:"storage_type,omitempty"`
+	StorageAddress   string                 `json:"storage_address,omitempty"`
+	StorageSharePath string                 `json:"storage_share_path,omitempty"`
+	StorageShareDir  string                 `json:"storage_share_dir"`
+	StorageUser      *CMExternalStorageUser `json:"storage_user,omitempty"`
+}
+
+type CMExternalStorageStatus struct {
+	Setup          string `json:"setup,omitempty"`
+	FailureMessage string `json:"failure_message,omitempty"`
+}
+
+type CMExternalStorageResp struct {
+	Spec   CMExternalStorage       `json:"spec,omitempty"`
+	Status CMExternalStorageStatus `json:"status,omitempty"`
+}
+
+type BootstrapCMResp struct {
+	Created string `json:"created,omitempty"`
+	Status  string `json:"status,omitempty"`
+	Step    string `json:"step,omitempty"`
+	Updated string `json:"updated,omitempty"`
+}
+
+func (p *BigipNextCM) AddExternalStorage(extStorage *CMExternalStorage) (string, error) {
+	uriStorage := "/v1/system/infra/external-storage"
+
+	payload, err := json.Marshal(extStorage)
+
+	if err != nil {
+		f5osLogger.Error("[AddExternalStorage]", "Error", err)
+		return "", err
+	}
+
+	resp, err := p.PostCMRequest(uriStorage, payload)
+
+	return string(resp), err
+}
+
+func (p *BigipNextCM) BootstrapCM(timeout int64) (string, error) {
+	uriBootstrap := "/v1/system/infra/bootstrap"
+	var res BootstrapCMResp
+
+	resp, err := p.PostCMRequest(uriBootstrap, nil)
+
+	if err != nil {
+		f5osLogger.Error("[BootstrapCM]", "Error", err)
+		return "", err
+	}
+
+	json.Unmarshal(resp, &res)
+
+	start := time.Now()
+
+	for res.Status == "RUNNING" && time.Since(start) < (time.Second*time.Duration(timeout)) {
+		resp, err = p.GetCMRequest(uriBootstrap)
+
+		if err != nil {
+			if strings.HasPrefix(err.Error(), `{"code":50`) {
+				time.Sleep(3 * time.Second)
+				continue
+			}
+
+			f5osLogger.Error("[BootstrapCM]", "Error", err)
+			return "", err
+		}
+
+		json.Unmarshal(resp, &res)
+
+		if res.Status == "COMPLETED" {
+			break
+		}
+
+		if res.Status == "FAILED" {
+			return "", fmt.Errorf("bootstrap failed: %v", res.Step)
+		}
+
+		f5osLogger.Info("[BootstrapCM]", "Info", fmt.Sprintf("CM Bootstrap status: %v", res.Step))
+		time.Sleep(5 * time.Second)
+	}
+
+	return string(resp), err
+}
+
+func (p *BigipNextCM) GetCMBootstrap() (string, error) {
+	uriBootstrap := "/v1/system/infra/bootstrap"
+
+	resp, err := p.GetCMRequest(uriBootstrap)
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(resp), nil
+}
+
+func (p *BigipNextCM) GetCMExternalStorage() (string, error) {
+	uriStorage := "/v1/system/infra/external-storage"
+
+	resp, err := p.GetCMRequest(uriStorage)
+
+	return string(resp), err
 }
 
 // https://10.144.73.240/api/device/v1/instances

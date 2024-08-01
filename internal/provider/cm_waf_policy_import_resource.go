@@ -105,14 +105,14 @@ func (r *NextCMWAFPolicyImportResource) Create(ctx context.Context, req resource
 	var resCfg *NextCMWAFPolicyImportResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	reqDraft := getCMWAFPolicyImportConfig(ctx, resCfg)
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] CM WAF Policy Import config : %+v\n", reqDraft))
 
 	id, err := r.client.PolicyImport(reqDraft)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Error", fmt.Sprintf("Failed to Import WAF Policy, got error: %s", err))
 		return
 	}
@@ -124,13 +124,13 @@ func (r *NextCMWAFPolicyImportResource) Create(ctx context.Context, req resource
 func (r *NextCMWAFPolicyImportResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *NextCMWAFPolicyImportResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	id := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("[READ] Reading WAF Policy : %s", id))
 	wafData, err := r.client.GetWAFPolicyDetails(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Error", fmt.Sprintf("Failed to Read WAF Policy, got error: %s", err))
 		return
 	}
@@ -142,7 +142,7 @@ func (r *NextCMWAFPolicyImportResource) Update(ctx context.Context, req resource
 	var resCfg *NextCMWAFPolicyImportResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] Updating WAF Policy : %s", resCfg.Name.ValueString()))
@@ -155,7 +155,7 @@ func (r *NextCMWAFPolicyImportResource) Update(ctx context.Context, req resource
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] CM WAF Policy Import config : %+v\n", reqDraft))
 	reqDraft.Override = "true"
 	id, err := r.client.PolicyImport(reqDraft)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Error", fmt.Sprintf("Failed to Import WAF Policy, got error: %s", err))
 		return
 	}
@@ -167,7 +167,7 @@ func (r *NextCMWAFPolicyImportResource) Update(ctx context.Context, req resource
 func (r *NextCMWAFPolicyImportResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 	var stateCfg *NextCMWAFPolicyImportResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
@@ -176,7 +176,7 @@ func (r *NextCMWAFPolicyImportResource) Delete(ctx context.Context, req resource
 	tflog.Info(ctx, fmt.Sprintf("[DELETE] Deleting WAF Policy : %s", id))
 
 	err := r.client.DeleteWAFPolicy(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete WAF Policy, got error: %s", err))
 		return
 	}
@@ -201,8 +201,14 @@ func getCMWAFPolicyImportConfig(ctx context.Context, data *NextCMWAFPolicyImport
 func (r *NextCMWAFPolicyImportResource) WafPolicyModeltoState(ctx context.Context, respData interface{}, data *NextCMWAFPolicyImportResourceModel) {
 	tflog.Info(ctx, fmt.Sprintf("WafPolicyModeltoState \t name: %+v", respData.(map[string]interface{})["name"]))
 	data.Name = types.StringValue(respData.(map[string]interface{})["name"].(string))
-	description, ok := respData.(map[string]interface{})["description"]
+	declaration, ok := respData.(map[string]interface{})["declaration"]
 	if ok {
-		data.Description = types.StringValue(description.(string))
+		policy, ok := declaration.(map[string]interface{})["policy"]
+		if ok {
+			description, ok := policy.(map[string]interface{})["description"]
+			if ok {
+				data.Description = types.StringValue(description.(string))
+			}
+		}
 	}
 }

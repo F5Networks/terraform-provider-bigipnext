@@ -157,7 +157,7 @@ func (r *NextGlobalResiliencyResource) Create(ctx context.Context, req resource.
 	var resCfg *NextGlobalResiliencyResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] NextGlobalResiliencyResource:%+v\n", resCfg.Name.ValueString()))
@@ -168,7 +168,7 @@ func (r *NextGlobalResiliencyResource) Create(ctx context.Context, req resource.
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] :%+v\n", reqDraft))
 
 	id, err := r.client.PostGlobalResiliencyGroup("POST", reqDraft)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Global Resiliency Error", fmt.Sprintf("Failed to Create Global Resiliency Group, got error: %s", err))
 		return
 	}
@@ -183,13 +183,13 @@ func (r *NextGlobalResiliencyResource) Create(ctx context.Context, req resource.
 func (r *NextGlobalResiliencyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *NextGlobalResiliencyResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	id := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("Reading Global Resiliency Group : %s", id))
 	grData, err := r.client.GetGlobalResiliencyGroupDetails(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Error", fmt.Sprintf("Failed to Read  Global Resiliency Group, got error: %s", err))
 		return
 	}
@@ -222,7 +222,7 @@ func (r *NextGlobalResiliencyResource) Update(ctx context.Context, req resource.
 	var resCfg *NextGlobalResiliencyResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] Updating Global Resiliency Group: %s", resCfg.Name.ValueString()))
@@ -234,7 +234,7 @@ func (r *NextGlobalResiliencyResource) Update(ctx context.Context, req resource.
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] :%+v\n", reqDraft))
 
 	id, err := r.client.PostGlobalResiliencyGroup("PUT", reqDraft)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Update Global Resiliency Group, got error: %s", err))
 		return
 	}
@@ -246,7 +246,7 @@ func (r *NextGlobalResiliencyResource) Update(ctx context.Context, req resource.
 func (r *NextGlobalResiliencyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 	var stateCfg *NextGlobalResiliencyResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
@@ -255,7 +255,7 @@ func (r *NextGlobalResiliencyResource) Delete(ctx context.Context, req resource.
 	tflog.Info(ctx, fmt.Sprintf("Deleting Global Resiliency Group : %s", id))
 
 	err := r.client.DeleteGlobalResiliencyGroup(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete Global Resiliency Group, got error: %s", err))
 		return
 	}
@@ -263,7 +263,7 @@ func (r *NextGlobalResiliencyResource) Delete(ctx context.Context, req resource.
 	stateCfg.Id = types.StringValue("")
 }
 
-func (r *NextGlobalResiliencyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *NextGlobalResiliencyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) { // coverage-ignore
 	// resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 

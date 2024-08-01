@@ -1,0 +1,32 @@
+{
+  "_embedded": {
+    "devices": [
+      {
+        "_links": {
+          "self": {
+            "href": "/v1/inventory?filter=address+eq+%2710.218.132.39%27/494975ee-5eba-420a-90a6-f3aeb75bbf5b"
+          }
+        },
+        "address": "10.218.132.39",
+        "certificate_validated": "2024-07-01T07:44:31.174615Z",
+        "certificate_validation_error": "tls: failed to verify certificate: x509: certificate signed by unknown authority",
+        "certificate_validity": false,
+        "hostname": "big-ip-next",
+        "id": "494975ee-5eba-420a-90a6-f3aeb75bbf5b",
+        "mode": "STANDALONE",
+        "platform_name": "KVM",
+        "platform_type": "VE",
+        "port": 5443,
+        "short_id": "fYYPFbrB",
+        "version": "20.2.1-2.430.2"
+      }
+    ]
+  },
+  "_links": {
+    "self": {
+      "href": "/v1/inventory?filter=address+eq+%2710.218.132.39%27"
+    }
+  },
+  "count": 1,
+  "total": 1
+}

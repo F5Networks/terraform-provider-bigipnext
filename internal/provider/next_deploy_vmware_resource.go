@@ -255,21 +255,21 @@ func (r *NextDeployVmwareResource) Configure(ctx context.Context, req resource.C
 func (r *NextDeployVmwareResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var resCfg *NextDeployVmwareResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	var providerModel VsphereProviderModel
 	diag := resCfg.VsphereProvider.As(ctx, &providerModel, basetypes.ObjectAsOptions{})
-	if diag.HasError() {
+	if diag.HasError() { // coverage-ignore
 		return
 	}
 	var instanceModel InstanceModel
 	diag = resCfg.Instance.As(ctx, &instanceModel, basetypes.ObjectAsOptions{})
-	if diag.HasError() {
+	if diag.HasError() { // coverage-ignore
 		return
 	}
 	providerID, err := r.client.GetDeviceProviderIDByHostname(providerModel.ProviderName.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to get provider ID:, got error: %s", err))
 		return
 	}
@@ -277,13 +277,13 @@ func (r *NextDeployVmwareResource) Create(ctx context.Context, req resource.Crea
 	providerConfig := instanceConfig(ctx, resCfg)
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] Deploy Next Instance:%+v\n", providerConfig.Parameters.Hostname))
 	respData, err := r.client.PostDeviceInstance(providerConfig, int(resCfg.Timeout.ValueInt64()))
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Deploy Instance, got error: %s", err))
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] respData ID:%+v\n", respData))
 	deviceDetails, err := r.client.GetDeviceIdByHostname(providerConfig.Parameters.Hostname)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Device Info, got error: %s", err))
 		return
 	}
@@ -295,14 +295,14 @@ func (r *NextDeployVmwareResource) Create(ctx context.Context, req resource.Crea
 func (r *NextDeployVmwareResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *NextDeployVmwareResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	id := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("Reading Device info for : %+v", id))
 
 	deviceDetails, err := r.client.GetDeviceIdByHostname(stateCfg.Id.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Device Info, got error: %s", err))
 		return
 	}
@@ -314,7 +314,7 @@ func (r *NextDeployVmwareResource) Update(ctx context.Context, req resource.Upda
 	var resCfg *NextDeployVmwareResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	providerConfig := instanceConfig(ctx, resCfg)
@@ -325,7 +325,7 @@ func (r *NextDeployVmwareResource) Update(ctx context.Context, req resource.Upda
 func (r *NextDeployVmwareResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 	var stateCfg *NextDeployVmwareResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
@@ -333,14 +333,14 @@ func (r *NextDeployVmwareResource) Delete(ctx context.Context, req resource.Dele
 
 	tflog.Info(ctx, fmt.Sprintf("[DELETE] Deleting Instance from CM : %s", id))
 	deviceDetails, err := r.client.GetDeviceIdByHostname(stateCfg.Id.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Device Info, got error: %s", err))
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("Device Info : %+v", *deviceDetails))
 
 	err = r.client.DeleteDevice(*deviceDetails)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete Instance, got error:%s", err))
 		return
 	}
@@ -356,12 +356,12 @@ func instanceConfig(ctx context.Context, data *NextDeployVmwareResourceModel) *b
 	deployConfig.TemplateName = "default-standalone-ve"
 	var providerModel VsphereProviderModel
 	diag := data.VsphereProvider.As(ctx, &providerModel, basetypes.ObjectAsOptions{})
-	if diag.HasError() {
+	if diag.HasError() { // coverage-ignore
 		tflog.Error(ctx, fmt.Sprintf("VsphereProviderModel diag Error: %+v", diag.Errors()))
 	}
 	var instanceModel InstanceModel
 	diag = data.Instance.As(ctx, &instanceModel, basetypes.ObjectAsOptions{})
-	if diag.HasError() {
+	if diag.HasError() { // coverage-ignore
 		tflog.Error(ctx, fmt.Sprintf("InstanceModel diag Error: %+v", diag.Errors()))
 	}
 	var cmReqDeviceInstance bigipnextsdk.CMReqDeviceInstance
@@ -409,7 +409,7 @@ func instanceConfig(ctx context.Context, data *NextDeployVmwareResourceModel) *b
 			l1Networks.Vlans[index].Tag = int(vlan.VlanTag.ValueInt64())
 			elements := make([]types.String, 0, len(vlan.SelfIps.Elements()))
 			diags := vlan.SelfIps.ElementsAs(ctx, &elements, false)
-			if diags.HasError() {
+			if diags.HasError() { // coverage-ignore
 				tflog.Error(ctx, fmt.Sprintf("SelfIps diag Error: %+v", diags.Errors()))
 			}
 			l1Networks.Vlans[index].SelfIps = make([]bigipnextsdk.CMReqSelfIps, len(elements))

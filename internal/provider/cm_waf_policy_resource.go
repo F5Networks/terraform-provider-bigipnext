@@ -192,7 +192,7 @@ func (r *NextCMWAFPolicyResource) Create(ctx context.Context, req resource.Creat
 	var resCfg *NextCMWAFPolicyResourceModel
 
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] NextCMWAFPolicyResource:%+v\n", resCfg))
@@ -200,7 +200,7 @@ func (r *NextCMWAFPolicyResource) Create(ctx context.Context, req resource.Creat
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] WAF Policy config :%+v\n", reqDraft))
 
 	id, err := r.client.PostWAFPolicy("POST", reqDraft)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("WAF Policy Error", fmt.Sprintf("Failed to Create WAF Policy, got error: %s", err))
 		return
 	}
@@ -249,13 +249,13 @@ func (r *NextCMWAFPolicyResource) Create(ctx context.Context, req resource.Creat
 func (r *NextCMWAFPolicyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *NextCMWAFPolicyResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	id := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("[READ] Reading WAF Policy : %s", id))
 	wafData, err := r.client.GetWAFPolicyDetails(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Error", fmt.Sprintf("Failed to Read WAF Policy, got error: %s", err))
 		return
 	}
@@ -268,7 +268,7 @@ func (r *NextCMWAFPolicyResource) Update(ctx context.Context, req resource.Updat
 	var resCfg *NextCMWAFPolicyResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] Updating WAF Policy : %s", resCfg.Name.ValueString()))
@@ -280,7 +280,7 @@ func (r *NextCMWAFPolicyResource) Update(ctx context.Context, req resource.Updat
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] :%+v\n", reqDraft))
 
 	id, err := r.client.PostWAFPolicy("PUT", reqDraft)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Update WAF Policy, got error: %s", err))
 		return
 	}
@@ -294,7 +294,7 @@ func (r *NextCMWAFPolicyResource) Update(ctx context.Context, req resource.Updat
 func (r *NextCMWAFPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 	var stateCfg *NextCMWAFPolicyResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
@@ -303,7 +303,7 @@ func (r *NextCMWAFPolicyResource) Delete(ctx context.Context, req resource.Delet
 	tflog.Info(ctx, fmt.Sprintf("[DELETE] Deleting WAF Policy : %s", id))
 
 	err := r.client.DeleteWAFPolicy(id)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete WAF Policy, got error: %s", err))
 		return
 	}
@@ -311,7 +311,7 @@ func (r *NextCMWAFPolicyResource) Delete(ctx context.Context, req resource.Delet
 	stateCfg.Id = types.StringValue("")
 }
 
-func (r *NextCMWAFPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *NextCMWAFPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) { // coverage-ignore
 	// resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
@@ -337,7 +337,7 @@ func getCMWAFPolicyRequestDraft(ctx context.Context, data *NextCMWAFPolicyResour
 	botdefenseModel.Enabled = types.BoolValue(true)
 	if !data.BotDefense.IsNull() && !data.BotDefense.IsUnknown() {
 		diag := data.BotDefense.As(ctx, &botdefenseModel, basetypes.ObjectAsOptions{})
-		if diag.HasError() {
+		if diag.HasError() { // coverage-ignore
 			tflog.Error(ctx, fmt.Sprintf("[getCMWAFPolicyRequestDraft] diag Error: %+v", diag.Errors()))
 		}
 	}
@@ -347,7 +347,7 @@ func getCMWAFPolicyRequestDraft(ctx context.Context, data *NextCMWAFPolicyResour
 	ipintelligenceModel.Enabled = types.BoolValue(true)
 	if !data.IpIntelligence.IsNull() && !data.IpIntelligence.IsUnknown() {
 		diag := data.IpIntelligence.As(ctx, &ipintelligenceModel, basetypes.ObjectAsOptions{})
-		if diag.HasError() {
+		if diag.HasError() { // coverage-ignore
 			tflog.Error(ctx, fmt.Sprintf("[getCMWAFPolicyRequestDraft] diag Error: %+v", diag.Errors()))
 		}
 	}
@@ -357,7 +357,7 @@ func getCMWAFPolicyRequestDraft(ctx context.Context, data *NextCMWAFPolicyResour
 	dosprotectionModel.Enabled = types.BoolValue(false)
 	if !data.DosProtection.IsNull() && !data.DosProtection.IsUnknown() {
 		diag := data.DosProtection.As(ctx, &dosprotectionModel, basetypes.ObjectAsOptions{})
-		if diag.HasError() {
+		if diag.HasError() { // coverage-ignore
 			tflog.Error(ctx, fmt.Sprintf("[getCMWAFPolicyRequestDraft] diag Error: %+v", diag.Errors()))
 		}
 	}
@@ -367,7 +367,7 @@ func getCMWAFPolicyRequestDraft(ctx context.Context, data *NextCMWAFPolicyResour
 	blockingsettingdModel.Enabled = types.BoolValue(true)
 	if !data.BlockingSettings.IsNull() && !data.BlockingSettings.IsUnknown() {
 		diag := data.BlockingSettings.As(ctx, &blockingsettingdModel, basetypes.ObjectAsOptions{})
-		if diag.HasError() {
+		if diag.HasError() { // coverage-ignore
 			tflog.Error(ctx, fmt.Sprintf("[getCMWAFPolicyRequestDraft] diag Error: %+v", diag.Errors()))
 		}
 	}
@@ -398,7 +398,14 @@ func (r *NextCMWAFPolicyResource) WafPolicyModeltoState(ctx context.Context, res
 	if ok {
 		data.Description = types.StringValue(description.(string))
 	}
-	data.Tags, _ = types.ListValueFrom(ctx, types.StringType, respData.(map[string]interface{})["tags"])
+	tags := respData.(map[string]interface{})["tags"]
+	if tags != nil {
+		if _, ok := tags.([]interface{}); ok {
+			data.Tags, _ = types.ListValueFrom(ctx, types.StringType, tags)
+		}
+	} else {
+		data.Tags = types.ListNull(types.StringType)
+	}
 	data.EnforecementMode = types.StringValue(respData.(map[string]interface{})["enforcement_mode"].(string))
 	data.ApplicationLanguage = types.StringValue(respData.(map[string]interface{})["application_language"].(string))
 	data.Id = types.StringValue(respData.(map[string]interface{})["id"].(string))

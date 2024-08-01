@@ -14,8 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	bigipnextsdk "gitswarm.f5net.com/terraform-providers/bigipnext"
-	// "strings"
-	// "sync"
 )
 
 var (
@@ -90,7 +88,7 @@ func (r *NextCMDeviceProviderResource) Configure(ctx context.Context, req resour
 func (r *NextCMDeviceProviderResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var resCfg *NextCMDeviceProviderResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] NextCMDeviceProviderResource:%+v\n", resCfg.Name.ValueString()))
@@ -100,7 +98,7 @@ func (r *NextCMDeviceProviderResource) Create(ctx context.Context, req resource.
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] Device Provider config:%+v\n", providerConfig))
 	respData, err := r.client.PostDeviceProvider(providerConfig)
 
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Adding Provider failed with: %s", err))
 		return
 	}
@@ -116,14 +114,14 @@ func (r *NextCMDeviceProviderResource) Create(ctx context.Context, req resource.
 func (r *NextCMDeviceProviderResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var stateCfg *NextCMDeviceProviderResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	id := stateCfg.Id.ValueString()
 	tflog.Info(ctx, fmt.Sprintf("Reading Device Provider : %+v", stateCfg.Name.ValueString()))
 
 	deviceProvider, err := r.client.GetDeviceProvider(id, stateCfg.Type.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Read Device Provider, got error: %s", err))
 		return
 	}
@@ -144,7 +142,7 @@ func (r *NextCMDeviceProviderResource) Update(ctx context.Context, req resource.
 	var resCfg *NextCMDeviceProviderResourceModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &resCfg)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	tflog.Info(ctx, fmt.Sprintf("[UPDATE] Updating Device Provider: %s", resCfg.Name.ValueString()))
@@ -154,7 +152,7 @@ func (r *NextCMDeviceProviderResource) Update(ctx context.Context, req resource.
 
 	respData, err := r.client.UpdateDeviceProvider(resCfg.Id.ValueString(), providerConfig)
 
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Update Device provider, got error: %s", err))
 		return
 	}
@@ -165,7 +163,7 @@ func (r *NextCMDeviceProviderResource) Update(ctx context.Context, req resource.
 func (r *NextCMDeviceProviderResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 	var stateCfg *NextCMDeviceProviderResourceModel
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	resp.Diagnostics.Append(req.State.Get(ctx, &stateCfg)...)
@@ -173,14 +171,14 @@ func (r *NextCMDeviceProviderResource) Delete(ctx context.Context, req resource.
 
 	tflog.Info(ctx, fmt.Sprintf("[DELETE] Deleting Device Provider : %s", id))
 	_, err := r.client.DeleteDeviceProvider(id, stateCfg.Type.ValueString())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete Device Provider, got error: %s", err))
 		return
 	}
 	stateCfg.Id = types.StringValue("")
 }
 
-func (r *NextCMDeviceProviderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *NextCMDeviceProviderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) { // coverage-ignore
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 

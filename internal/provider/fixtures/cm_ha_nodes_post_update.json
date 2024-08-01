@@ -1,0 +1,17 @@
+[
+    {
+        "metadata": {
+            "id": "",
+            "machine_id": "",
+            "name": "central-manager-12.34.56.77"
+        },
+        "spec": {
+            "node_address": "12.34.56.77",
+            "node_type": "server"
+        },
+        "status": {
+            "ready": false,
+            "registration": "PENDING"
+        }
+    }
+]

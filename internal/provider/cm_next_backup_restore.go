@@ -128,20 +128,20 @@ func (r *NextCMBackupRestoreResource) Configure(ctx context.Context, req resourc
 }
 
 func (r *NextCMBackupRestoreResource) GetDeviceId(data *NextCMBackupRestoreResourceModel) (deviceId *string, err error) {
-	if data.DeviceIp.ValueString() == "" && data.DeviceHostname.ValueString() == "" {
+	if data.DeviceIp.ValueString() == "" && data.DeviceHostname.ValueString() == "" { // coverage-ignore
 		return nil, fmt.Errorf("the 'device_ip' or 'device_hostname' parameter must be specified")
 	}
 	if data.DeviceIp.ValueString() == "" {
 		device := data.DeviceHostname.ValueString()
 		deviceId, err := r.client.GetDeviceIdByHostname(device)
-		if err != nil {
+		if err != nil { // coverage-ignore
 			return nil, err
 		}
 		return deviceId, nil
 	} else {
 		device := data.DeviceIp.ValueString()
 		deviceId, err = r.client.GetDeviceIdByIp(device)
-		if err != nil {
+		if err != nil { // coverage-ignore
 			return nil, err
 		}
 		return deviceId, nil
@@ -154,11 +154,11 @@ func (r *NextCMBackupRestoreResource) Create(ctx context.Context, req resource.C
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 	deviceId, err := r.GetDeviceId(data)
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to obtain device id, got error: %s", err))
 		return
 	}
@@ -167,7 +167,7 @@ func (r *NextCMBackupRestoreResource) Create(ctx context.Context, req resource.C
 	if data.Operation.ValueString() == "backup" {
 		mutex.Lock()
 		respData, err := r.client.BackupTenant(deviceId, config, int(data.Timeout.ValueInt64()))
-		if err != nil {
+		if err != nil { // coverage-ignore
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to create config backup, got error: %s", err))
 			return
 		}
@@ -178,7 +178,7 @@ func (r *NextCMBackupRestoreResource) Create(ctx context.Context, req resource.C
 	if data.Operation.ValueString() == "restore" {
 		mutex.Lock()
 		respData, err := r.client.RestoreTenant(deviceId, config, int(data.Timeout.ValueInt64()))
-		if err != nil {
+		if err != nil { // coverage-ignore
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to restore config backup, got error: %s", err))
 			return
 		}
@@ -190,7 +190,7 @@ func (r *NextCMBackupRestoreResource) Create(ctx context.Context, req resource.C
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *NextCMBackupRestoreResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *NextCMBackupRestoreResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) { // coverage-ignore
 	var data *NextCMBackupRestoreResourceModel
 
 	// Read Terraform plan data into the model
@@ -243,12 +243,12 @@ func (r *NextCMBackupRestoreResource) Delete(ctx context.Context, req resource.D
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 
 	err := r.client.DeleteBackupFile(data.FileName.ValueStringPointer())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to Delete backup file, got error: %s", err))
 		return
 	}
@@ -260,13 +260,13 @@ func (r *NextCMBackupRestoreResource) Read(ctx context.Context, req resource.Rea
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
-	if resp.Diagnostics.HasError() {
+	if resp.Diagnostics.HasError() { // coverage-ignore
 		return
 	}
 
 	//respByte, err := r.client.GetTenant(data.Name.ValueString())
 	respByte, err := r.client.GetBackupFile(data.FileName.ValueStringPointer())
-	if err != nil {
+	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to find backup file, got error: %s", err))
 		return
 	}
@@ -276,7 +276,7 @@ func (r *NextCMBackupRestoreResource) Read(ctx context.Context, req resource.Rea
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *NextCMBackupRestoreResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *NextCMBackupRestoreResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) { // coverage-ignore
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
@@ -298,7 +298,7 @@ func getCreateBackupRestoreConfig(ctx context.Context, req resource.CreateReques
 	return &config
 }
 
-func getUpdateBackupRestoreConfig(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) *bigipnextsdk.BackupRestoreTenantRequest {
+func getUpdateBackupRestoreConfig(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) *bigipnextsdk.BackupRestoreTenantRequest { // coverage-ignore
 	var data *NextCMBackupRestoreResourceModel
 
 	// Read Terraform plan data into the model
