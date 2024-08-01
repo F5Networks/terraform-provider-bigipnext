@@ -1,0 +1,239 @@
+{
+    "policy": {
+     "app-protection": {
+      "enabled": true
+     },
+     "applicationLanguage": "utf-8",
+     "caseInsensitive": true,
+     "cookie-settings": {
+      "maximumCookieHeaderLength": "4096"
+     },
+     "csrf-protection": {
+      "enabled": false
+     },
+     "csrf-urls": [
+      {
+       "enforcementAction": "verify-origin",
+       "method": "POST",
+       "requiredParameters": "ignore",
+       "url": "*",
+       "wildcardOrder": 1
+      }
+     ],
+     "data-guard": {
+      "enabled": false,
+      "enforcementMode": "ignore-urls-in-list"
+     },
+     "description": "",
+     "dos-protection": {
+      "behavioral-dos": {
+       "badActorDetection": {
+        "enableTlsIndexing": true,
+        "enabled": true
+       },
+       "enableHttpSignatures": true,
+       "enableTlsSignatures": false,
+       "mitigationLevel": "standard"
+      },
+      "enabled": false
+     },
+     "enablePassiveMode": false,
+     "enforcementMode": "blocking",
+     "fullPath": "/Common/Rating-Based-Template",
+     "general": {
+      "allowedResponseCodes": [
+       400,
+       401,
+       403,
+       404,
+       405,
+       406,
+       407,
+       415,
+       417,
+       503
+      ],
+      "enableEventCorrelation": true,
+      "enforcementReadinessPeriod": 7,
+      "maskCreditCardNumbersInRequest": true,
+      "pathParameterHandling": "as-parameters",
+      "triggerAsmIruleEvent": "disabled",
+      "trustXff": false,
+      "useDynamicSessionIdInUrl": false
+     },
+     "header-settings": {
+      "maximumHttpHeaderLength": "8192"
+     },
+     "login-enforcement": {
+      "expirationTimePeriod": "disabled"
+     },
+     "name": "test",
+     "performStaging": true,
+     "policy-builder": {
+      "enableFullPolicyInspection": true,
+      "enableTrustedTrafficSiteChangeTracking": true,
+      "enableUntrustedTrafficSiteChangeTracking": true,
+      "inactiveEntityInactivityDurationInDays": 90,
+      "learnFromResponses": false,
+      "learnInactiveEntities": false,
+      "learnOnlyFromNonBotTraffic": true,
+      "learningMode": "on-demand",
+      "responseStatusCodes": [
+       "2xx",
+       "3xx",
+       "1xx"
+      ],
+      "trafficTighten": {
+       "maxModificationSuggestionScore": 50,
+       "minDaysBetweenSamples": 1,
+       "totalRequests": 15000
+      },
+      "trustAllIps": false,
+      "trustedTrafficLoosen": {
+       "differentSources": 1,
+       "maxDaysBetweenSamples": 7,
+       "minHoursBetweenSamples": 0
+      },
+      "trustedTrafficSiteChangeTracking": {
+       "differentSources": 1,
+       "maxDaysBetweenSamples": 7,
+       "minMinutesBetweenSamples": 0
+      },
+      "untrustedTrafficLoosen": {
+       "differentSources": 20,
+       "maxDaysBetweenSamples": 7,
+       "minHoursBetweenSamples": 1
+      },
+      "untrustedTrafficSiteChangeTracking": {
+       "differentSources": 10,
+       "maxDaysBetweenSamples": 7,
+       "minMinutesBetweenSamples": 20
+      }
+     },
+     "policy-builder-central-configuration": {
+      "buildingMode": "local",
+      "eventCorrelationMode": "local"
+     },
+     "policy-builder-cookie": {
+      "collapseCookiesIntoOneEntity": false,
+      "enforceUnmodifiedCookies": false,
+      "learnExplicitCookies": "never",
+      "maximumCookies": 100
+     },
+     "policy-builder-filetype": {
+      "learnExplicitFiletypes": "never",
+      "maximumFileTypes": 100
+     },
+     "policy-builder-header": {
+      "maximumHosts": 10000,
+      "validHostNames": false
+     },
+     "policy-builder-parameter": {
+      "classifyParameters": false,
+      "collapseParametersIntoOneEntity": false,
+      "dynamicParameters": {
+       "allHiddenFields": false,
+       "formParameters": false,
+       "linkParameters": false,
+       "uniqueValueSets": 10
+      },
+      "learnExplicitParameters": "never",
+      "maximumParameters": 10000,
+      "parameterLearningLevel": "global",
+      "parametersIntegerValue": false
+     },
+     "policy-builder-redirection-protection": {
+      "learnExplicitRedirectionDomains": "never",
+      "maximumRedirectionDomains": 100
+     },
+     "policy-builder-server-technologies": {
+      "enableServerTechnologiesDetection": false
+     },
+     "policy-builder-sessions-and-logins": {
+      "learnLoginPage": false
+     },
+     "policy-builder-url": {
+      "classifyUrls": false,
+      "classifyWebsocketUrls": false,
+      "collapseUrlsIntoOneEntity": false,
+      "learnExplicitUrls": "never",
+      "learnExplicitWebsocketUrls": "never",
+      "learnMethodsOnUrls": false,
+      "maximumUrls": 100,
+      "maximumWebsocketUrls": 100,
+      "wildcardUrlFiletypes": [
+       "bmp",
+       "wav",
+       "swf",
+       "gif",
+       "pcx",
+       "pdf",
+       "png",
+       "jpeg",
+       "ico",
+       "jpg"
+      ]
+     },
+     "protocolIndependent": true,
+     "redirection-protection": {
+      "redirectionProtectionEnabled": false
+     },
+     "request-loggers": [
+      {
+       "destination": "toda",
+       "escapingCharacters": [
+        {
+         "from": "\"",
+         "to": "\\\""
+        }
+       ],
+       "filter": [
+        {
+         "field": "enforcementState.hasViolations",
+         "values": [
+          true
+         ]
+        }
+       ],
+       "formatString": "{\"unit_hostname\":\"%unit_hostname%\",\"management_ip_address\":\"%management_ip_address%\",\"management_ip_address_2\":\"%management_ip_address_2%\",\"http_class_name\":\"%http_class_name%\",\"web_application_name\":\"%http_class_name%\",\"policy_name\":\"%policy_name%\",\"policy_apply_date\":\"%policy_apply_date%Z\",\"violations\":\"%violations%\",\"support_id\":\"%support_id%\",\"request_status\":\"%request_status%\",\"response_code\":\"%response_code%\",\"ip_client\":\"%ip_client%\",\"route_domain\":\"%route_domain%\",\"method\":\"%method%\",\"protocol\":\"%protocol%\",\"query_string\":\"%query_string%\",\"x_forwarded_for_header_value\":\"%x_forwarded_for_header_value%\",\"sig_ids\":\"%sig_ids%\",\"sig_names\":\"%sig_names%\",\"date_time\":\"%date_time%Z\",\"severity\":\"%severity%\",\"attack_type\":\"%attack_type%\",\"geo_location\":\"%geo_location%\",\"ip_address_intelligence\":\"%ip_address_intelligence%\",\"username\":\"%username%\",\"session_id\":\"%session_id%\",\"src_port\":\"%src_port%\",\"dest_port\":\"%dest_port%\",\"dest_ip\":\"%dest_ip%\",\"sub_violations\":\"%sub_violations%\",\"virus_name\":\"%virus_name%\",\"microservice\":\"%microservice%\",\"tap_event_id\":\"%tap_event_id%\",\"tap_vid\":\"%tap_vid%\",\"uri\":\"%uri%\",\"violation_details\":\"%violation_details%\",\"violation_rating\":\"%violation_rating%\",\"websocket_direction\":\"%websocket_direction%\",\"websocket_message_type\":\"%websocket_message_type%\",\"compression_method\":\"%compression_method%\",\"device_id\":\"%device_id%\",\"staged_sig_ids\":\"%staged_sig_ids%\",\"staged_sig_names\":\"%staged_sig_names%\",\"threat_campaign_names\":\"%threat_campaign_names%\",\"staged_threat_campaign_names\":\"%staged_threat_campaign_names%\",\"blocking_exception_reason\":\"%blocking_exception_reason%\",\"mobile_application_name\":\"%mobile_application_name%\",\"mobile_application_version\":\"%mobile_application_version%\",\"client_type\":\"%client_type%\",\"captcha_result\":\"%captcha_result%\",\"headers\":\"%headers%\",\"fragment\":\"%fragment%\",\"sig_cves\":\"%sig_cves%\",\"staged_sig_cves\":\"%staged_sig_cves%\",\"avr_id\":\"%avr_id%\",\"ip_with_route_domain\":\"%ip_with_route_domain%\",\"is_truncated\":\"%is_truncated%\",\"sig_set_names\":\"%sig_set_names%\",\"slot_number\":\"%slot_number%\",\"staged_sig_set_names\":\"%staged_sig_set_names%\",\"vs_name\":\"%vs_name%\",\"login_result\":\"%login_result%\",\"request\":\"%request%\",\"response\":\"%response%\",\"bot_signature_name\":\"%bot_signature_name%\",\"bot_anomalies\":\"%bot_anomalies%\",\"enforced_bot_anomalies\":\"%enforced_bot_anomalies%\",\"client_class\":\"%client_class%\",\"bot_category\":\"%bot_category%\",\"policy_builder_data\":\"%policy_builder_data%\"}",
+       "maxMessageSize": 65336,
+       "name": "waf-traffic-request"
+      }
+     ],
+     "sensitive-parameters": [
+      {
+       "name": "password"
+      }
+     ],
+     "signature-sets": [
+      {
+       "alarm": true,
+       "block": false,
+       "learn": true,
+       "name": "High Accuracy Signatures"
+      },
+      {
+       "alarm": true,
+       "block": false,
+       "learn": true,
+       "name": "All Signatures"
+      }
+     ],
+     "signature-settings": {
+      "attackSignatureFalsePositiveMode": "disabled",
+      "minimumAccuracyForAutoAddedSignatures": "high",
+      "placeSignaturesInStaging": false,
+      "signatureStaging": false,
+      "stagingCertificationDatetime": ""
+     },
+     "softwareVersion": "17.0.0",
+     "template": {
+      "name": "BlankTemplate"
+     },
+     "threat-campaign-settings": {
+      "threatCampaignEnforcementReadinessPeriod": 1,
+      "threatCampaignStaging": false
+     },
+     "type": "security"
+    }
+   }
