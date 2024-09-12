@@ -23,10 +23,10 @@ func TestAccNextCMWAFPolicyCreateTC1Resource(t *testing.T) {
 					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "enforcement_mode", "blocking"),
 					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "application_language", "utf-8"),
 					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "template_name", "Rating-Based-Template"),
-					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "bot_defense", "false"),
-					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "ip_intelligence", "false"),
-					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "dos_protection", "true"),
-					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "blocking_settings", "true"),
+					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "bot_defense.enabled", "false"),
+					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "ip_intelligence.enabled", "false"),
+					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "dos_protection.enabled", "true"),
+					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "blocking_settings.enabled", "true"),
 				),
 			},
 			{
@@ -39,10 +39,10 @@ func TestAccNextCMWAFPolicyCreateTC1Resource(t *testing.T) {
 					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "enforcement_mode", "transparent"),
 					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "application_language", "iso-8859-6"),
 					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "template_name", "Fundamental-Template"),
-					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "bot_defense", "true"),
-					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "ip_intelligence", "true"),
-					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "dos_protection", "false"),
-					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "blocking_settings", "false"),
+					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "bot_defense.enabled", "true"),
+					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "ip_intelligence.enabled", "true"),
+					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "dos_protection.enabled", "false"),
+					resource.TestCheckResourceAttr("bigipnext_cm_waf_policy.sample", "blocking_settings.enabled", "false"),
 				),
 			},
 		},
@@ -174,6 +174,18 @@ resource "bigipnext_cm_waf_policy" "sample" {
 	enforcement_mode     = "blocking"
 	application_language = "utf-8"
 	template_name        = "Rating-Based-Template"
+	bot_defense = {
+		enabled = false
+	  }
+	ip_intelligence = {
+		enabled = false
+	  }
+	dos_protection = {
+		enabled = true
+	  }
+	blocking_settings = {
+		enabled = true
+	  }
   }`
 
 const testAccNextCMWAFPolicyResourceUpdateConfig = `
@@ -184,4 +196,16 @@ resource "bigipnext_cm_waf_policy" "sample" {
 	enforcement_mode     = "transparent"
 	application_language = "iso-8859-6"
 	template_name        = "Fundamental-Template"
+	bot_defense = {
+		enabled = true
+	  }
+	ip_intelligence = {
+		enabled = true
+	  }
+	dos_protection = {
+		enabled = false
+	  }
+	blocking_settings = {
+		enabled = false
+	  }
   }`

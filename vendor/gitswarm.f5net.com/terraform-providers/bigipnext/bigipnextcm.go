@@ -1006,7 +1006,7 @@ func (p *BigipNextCM) DeleteGlobalResiliencyGroup(id string) error {
 		if err != nil {
 			f5osLogger.Info("[DeleteGlobalResiliencyGroup]", "err status / code ", err.Error())
 
-			if strings.Contains(err.Error(), "Requested Global Resiliency Group not found for the given group id") {
+			if strings.Contains(err.Error(), "Global Resiliency Group not found") {
 				f5osLogger.Info("[DeleteGlobalResiliencyGroup] Resiliency Group already deleted")
 				return nil
 			}
