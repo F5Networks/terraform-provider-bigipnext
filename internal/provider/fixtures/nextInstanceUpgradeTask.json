@@ -1,0 +1,19 @@
+{
+    "_links": {
+        "self": {
+            "href": "/api/v1/spaces/default/instances/upgrade-tasks/80a5db52-7e5e-4faa-8a15-b7e807120912"
+        }
+    },
+    "completed": "2024-09-25T07:43:49.944964Z",
+    "created": "2024-09-25T07:20:30.855235Z",
+    "details": "Application upgraded from 20.2.1-2.430.2+0.0.48 to 20.3.0-2.713.1",
+    "failure_reason": "",
+    "id": "80a5db52-7e5e-4faa-8a15-b7e807120912",
+    "image_name": "2c98c081-0871-411d-b654-729f818d0e1a-7c0623c4-7dd0-4575-bc4b-db6fd1f395cf",
+    "instance_id": "b3740075-f421-4f3d-9df4-3d505bb45113",
+    "signature_name": "7db96222-9b3e-44de-8108-079bb0dc0c82-3153cc41-f9b9-462d-860a-597d3e111c73",
+    "state": "veUpgradeDone",
+    "status": "completed",
+    "step": "Upgrade Status",
+    "upgrade_type": "VE"
+}

@@ -296,8 +296,8 @@ func (r *NextDeployF5osResource) ImportState(ctx context.Context, req resource.I
 }
 
 func f5osRseriesConfig(ctx context.Context, data *NextDeployF5osResourceModel) *bigipnextsdk.CMReqDeviceInstance {
-	var deployConfig bigipnextsdk.CMReqDeviceInstance
-	deployConfig.TemplateName = "default-standalone-rseries"
+	// var deployConfig bigipnextsdk.CMReqDeviceInstance
+	// deployConfig.TemplateName = "default-standalone-rseries"
 	var providerModel F5OSProviderModel
 	diag := data.F5OSProvider.As(ctx, &providerModel, basetypes.ObjectAsOptions{})
 	if diag.HasError() {
@@ -358,8 +358,8 @@ func f5osRseriesConfig(ctx context.Context, data *NextDeployF5osResourceModel) *
 }
 
 func f5osVelosConfig(ctx context.Context, data *NextDeployF5osResourceModel) *bigipnextsdk.CMReqDeviceInstance {
-	var deployConfig bigipnextsdk.CMReqDeviceInstance
-	deployConfig.TemplateName = "default-standalone-velos"
+	// var deployConfig bigipnextsdk.CMReqDeviceInstance
+	// deployConfig.TemplateName = "default-standalone-velos"
 	var providerModel F5OSProviderModel
 	diag := data.F5OSProvider.As(ctx, &providerModel, basetypes.ObjectAsOptions{})
 	if diag.HasError() {

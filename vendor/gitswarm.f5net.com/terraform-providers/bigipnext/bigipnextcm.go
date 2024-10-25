@@ -19,6 +19,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,27 +28,41 @@ import (
 )
 
 const (
-	uriCMRoot            = "/api"
-	uriCMLogin           = "/api/login"
-	uriCMProxyFileUpload = "/device/v1/proxy-file-upload"
-	uriCMFileUpload      = "/system/v1/files"
-	uriFast              = "/mgmt/shared/fast"
-	uriOpenAPI           = "/openapi"
-	uriBackups           = "/device/v1/backups"
-	uriBackupTasks       = "/device/v1/backup-tasks"
-	uriRestoreTasks      = "/device/v1/restore-tasks"
-	uriCertificate       = "/api/v1/spaces/default/certificates"
-	uriLicenseToken      = "/api/v1/spaces/default/license/tokens"
-	uriCMUpgradeTask     = "/upgrade-manager/v1/upgrade-tasks"
-	// uriCertificateUpdate = "/api/certificate/v1/certificates"
-	uriGlobalResiliency    = "/api/v1/spaces/default/gslb/gr-groups"
-	uriGetGlobalResiliency = "/v1/spaces/default/gslb/gr-groups"
-	uriGetAlert            = "/alert/v1/alerts/?limit=1&sort=-start_time&filter=source%20eq%20%27DNS%27%20and%20status%20eq%20%27ACTIVE%27&select=summary"
-	uriWafReport           = "/v1/spaces/default/security/waf/reports"
-	// uriGetWafReport        = "/v1/spaces/default/security/waf/reports"
-	uriWafPolicy    = "/api/v1/spaces/default/security/waf-policies"
-	uriGetWafPolicy = "/v1/spaces/default/security/waf-policies"
+	uriCMRoot                  = "/api"
+	uriCMLogin                 = "/api/login"
+	uriCMProxyFileUpload       = "/device/v1/proxy-file-upload"
+	uriCMFileUpload            = "/system/v1/files"
+	uriOpenAPI                 = "/openapi"
+	uriBackups                 = "/device/v1/backups"
+	uriBackupTasks             = "/device/v1/backup-tasks"
+	uriRestoreTasks            = "/device/v1/restore-tasks"
+	uriDefault                 = "/api/v1/spaces/default"
+	uriCertificate             = "/api/v1/spaces/default/certificates"
+	uriLicenseToken            = "/api/v1/spaces/default/license/tokens"
+	uriCMUpgradeTask           = "/upgrade-manager/v1/upgrade-tasks"
+	uriGlobalResiliency        = "/api/v1/spaces/default/gslb/gr-groups"
+	uriGetGlobalResiliency     = "/v1/spaces/default/gslb/gr-groups"
+	uriGetAlert                = "/alert/v1/alerts/?limit=1&sort=-start_time&filter=source%20eq%20%27DNS%27%20and%20status%20eq%20%27ACTIVE%27&select=summary"
+	uriWafReport               = "/v1/spaces/default/security/waf/reports"
+	uriProxy                   = "/device/v1/proxy"
+	uriNextInstances           = "/v1/spaces/default/instances"
+	uriNextInstanceUpgradeTask = "/v1/spaces/default/instances/upgrade-tasks"
+	uriWafPolicy               = "/api/v1/spaces/default/security/waf-policies"
+	uriGetWafPolicy            = "/v1/spaces/default/security/waf-policies"
+	uriInfrainfo               = "/api/v1/system/infra/info"
+	uriCMBackup                = "/v1/system/backups"
+	uriCMBackupSchedule        = "/v1/system/backups/schedule"
+	uriCMBackupTask            = "/v1/system/backup-tasks"
+	uriGetScheduleBackupCM     = "/api/system/v1/schedules"
+	uriDeleteScheduleBackup    = "/api/v1/system/backups/schedule"
+	uriGetBackupFiles          = "/api/system/v1/files"
+	uriGetBackupConfig         = "/api/v1/system/backups"
+	uriCMRestore               = "/v1/system/restore"
+	uriCMRestoreTaskStatus     = "/v1/system/restore-tasks"
 )
+
+// uriGetWafReport        = "/v1/spaces/default/security/waf/reports"
+// uriCertificateUpdate = "/api/certificate/v1/certificates"
 
 // BIG IP Next CM Config Request structure
 type BigipNextCMReqConfig struct {
@@ -258,54 +274,6 @@ func (p *BigipNextCM) GetAs3SpecificationOpenAPI() error {
 	return nil
 }
 
-// create Get request to get Fast openapi sepcification
-func (p *BigipNextCM) GetFastSpecificationOpenAPI() error {
-	fastURL := fmt.Sprintf("%s%s%s", p.Host, uriFast, uriOpenAPI)
-	f5osLogger.Info("[GetFastSpecificationOpenAPI]", "URI Path", fastURL)
-	respData, err := p.doCMRequest("GET", fastURL, nil)
-	if err != nil {
-		return err
-	}
-	f5osLogger.Info("[GetFastSpecificationOpenAPI]", "Data::", hclog.Fmt("%+v", string(respData)))
-	return nil
-}
-
-// create GET request to get Fast templates
-func (p *BigipNextCM) GetFastTemplates() error {
-	fastURL := fmt.Sprintf("%s%s%s", p.Host, uriFast, "/templates")
-	f5osLogger.Info("[GetFastTemplates]", "URI Path", fastURL)
-	respData, err := p.doCMRequest("GET", fastURL, nil)
-	if err != nil {
-		return err
-	}
-	f5osLogger.Info("[GetFastTemplates]", "Data::", hclog.Fmt("%+v", string(respData)))
-	return nil
-}
-
-// create GET request to get Fast version
-func (p *BigipNextCM) GetFastVersion() error {
-	fastURL := fmt.Sprintf("%s%s%s", p.Host, uriFast, "/v1/version")
-	f5osLogger.Info("[GetFastVersion]", "URI Path", fastURL)
-	respData, err := p.doCMRequest("GET", fastURL, nil)
-	if err != nil {
-		return err
-	}
-	f5osLogger.Info("[GetFastVersion]", "Data::", hclog.Fmt("%+v", string(respData)))
-	return nil
-}
-
-// create GET request to get Fast applications
-func (p *BigipNextCM) GetFastApplications() error {
-	fastURL := fmt.Sprintf("%s%s%s", p.Host, uriFast, "/applications")
-	f5osLogger.Info("[GetFastApplications]", "URI Path", fastURL)
-	respData, err := p.doCMRequest("GET", fastURL, nil)
-	if err != nil {
-		return err
-	}
-	f5osLogger.Info("[GetFastApplications]", "Data::", hclog.Fmt("%+v", string(respData)))
-	return nil
-}
-
 // // create struct for above fast request
 // type FastRequest struct {
 // 	Name       string `json:"name,omitempty"`
@@ -401,6 +369,69 @@ func (p *BigipNextCM) PostFastRenderApplication(config *FastRequest) error {
 	return nil
 }
 
+// https://clouddocs.f5.com/api/v1/system/infra/info
+func (p *BigipNextCM) GetInfraInfo() (interface{}, error) {
+	infraURL := fmt.Sprintf("%s%s", p.Host, uriInfrainfo)
+	f5osLogger.Info("[GetInfraInfo]", "URI Path", infraURL)
+	respData, err := p.doCMRequest("GET", infraURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[GetInfraInfo]", "Data::", hclog.Fmt("%+v", string(respData)))
+	mapResp := make(map[string]interface{})
+	err = json.Unmarshal(respData, &mapResp)
+	if err != nil {
+		return nil, err
+	}
+	return mapResp, nil
+
+	// {
+	// 	"app_version": "0.179.6",
+	// 	"ha_status": "Not Running",
+	// 	"num_of_nodes": 1,
+	// 	"version": "BIG-IP-Next-CentralManager-20.3.0-0.14.42"
+	// }
+	// return respData, nil
+}
+
+// https://clouddocs.f5.com/api/v1/system/infra/info
+
+func (p *BigipNextCM) CheckCMVersion() (interface{}, error) {
+	infraURL := fmt.Sprintf("%s%s", p.Host, uriInfrainfo)
+	f5osLogger.Info("[GetInfraInfo]", "URI Path", infraURL)
+	respData, err := p.doCMRequest("GET", infraURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[GetInfraInfo]", "Data::", hclog.Fmt("%+v", string(respData)))
+	mapResp := make(map[string]interface{})
+	err = json.Unmarshal(respData, &mapResp)
+	if err != nil {
+		return nil, err
+	}
+	if mapResp != nil {
+		// Compile a regular expression to match version numbers like "20.3"
+		pattern := regexp.MustCompile(`\b(\d+)\.(\d+)\b`)
+		// Find all matches in the input string
+		matches := pattern.FindStringSubmatch(mapResp["version"].(string))
+		if len(matches) > 0 {
+			// Get the first match
+			majorVersion, _ := strconv.Atoi(matches[1])
+			minorVersion, _ := strconv.Atoi(matches[2])
+			if majorVersion > 20 || (majorVersion == 20 && minorVersion >= 3) {
+				return true, nil
+			}
+		}
+	}
+	// {
+	// 	"app_version": "0.179.6",
+	// 	"ha_status": "Not Running",
+	// 	"num_of_nodes": 1,
+	// 	"version": "BIG-IP-Next-CentralManager-20.3.0-0.14.42"
+	// }
+	return false, nil
+}
+
 // Create POST request to create Fast application
 func (p *BigipNextCM) PostFastApplication(config *FastRequest) error {
 	fastURL := fmt.Sprintf("%s%s%s", p.Host, uriFast, "/appsvcs")
@@ -476,83 +507,28 @@ func (p *BigipNextCM) DeleteFastApplicationWithFilter(tenantName, appName, filte
 	return nil
 }
 
-// create struct for above fast request
-type FastPool struct {
-	LoadBalancingMode string   `json:"loadBalancingMode,omitempty"`
-	MonitorType       []string `json:"monitorType,omitempty"`
-	PoolName          string   `json:"poolName,omitempty"`
-	ServicePort       int      `json:"servicePort,omitempty"`
-}
-type VirtualServer struct {
-	FastL4IdleTimeout         int      `json:"FastL4_idleTimeout,omitempty"`
-	FastL4LooseClose          bool     `json:"FastL4_looseClose,omitempty"`
-	FastL4LooseInitialization bool     `json:"FastL4_looseInitialization,omitempty"`
-	FastL4ResetOnTimeout      bool     `json:"FastL4_resetOnTimeout,omitempty"`
-	FastL4TcpCloseTimeout     int      `json:"FastL4_tcpCloseTimeout,omitempty"`
-	FastL4TcpHandshakeTimeout int      `json:"FastL4_tcpHandshakeTimeout,omitempty"`
-	TCPIdleTimeout            int      `json:"TCP_idle_timeout,omitempty"`
-	UDPIdleTimeout            int      `json:"UDP_idle_timeout,omitempty"`
-	Ciphers                   string   `json:"ciphers,omitempty"`
-	CiphersServer             string   `json:"ciphers_server,omitempty"`
-	EnableAccess              bool     `json:"enable_Access,omitempty"`
-	EnableFastL4              bool     `json:"enable_FastL4,omitempty"`
-	EnableHTTP2Profile        bool     `json:"enable_HTTP2_Profile,omitempty"`
-	EnableTCPProfile          bool     `json:"enable_TCP_Profile,omitempty"`
-	EnableTLSClient           bool     `json:"enable_TLS_Client,omitempty"`
-	EnableTLSServer           bool     `json:"enable_TLS_Server,omitempty"`
-	EnableUDPProfile          bool     `json:"enable_UDP_Profile,omitempty"`
-	EnableWAF                 bool     `json:"enable_WAF,omitempty"`
-	EnableIRules              bool     `json:"enable_iRules,omitempty"`
-	EnableMirroring           bool     `json:"enable_mirroring,omitempty"`
-	EnableSnat                bool     `json:"enable_snat,omitempty"`
-	IRulesEnum                []string `json:"iRulesEnum,omitempty"`
-	Pool                      string   `json:"pool,omitempty"`
-	SnatAddresses             []string `json:"snat_addresses,omitempty"`
-	SnatAutomap               bool     `json:"snat_automap,omitempty"`
-	TlsC12                    bool     `json:"tls_c_1_2,omitempty"`
-	TlsC13                    bool     `json:"tls_c_1_3,omitempty"`
-	TlsS12                    bool     `json:"tls_s_1_2,omitempty"`
-	TlsS13                    bool     `json:"tls_s_1_3,omitempty"`
-	VirtualName               string   `json:"virtualName,omitempty"`
-	VirtualPort               int      `json:"virtualPort,omitempty"`
-}
-
-type FastRequestDraft struct {
-	Name       string `json:"name,omitempty"`
-	Parameters struct {
-		ApplicationDescription string          `json:"application_description,omitempty"`
-		ApplicationName        string          `json:"application_name,omitempty"`
-		Pools                  []FastPool      `json:"pools,omitempty"`
-		Virtuals               []VirtualServer `json:"virtuals,omitempty"`
-	} `json:"parameters,omitempty"`
-	SetName        string `json:"set_name,omitempty"`
-	TemplateName   string `json:"template_name,omitempty"`
-	TenantName     string `json:"tenant_name,omitempty"`
-	AllowOverwrite bool   `json:"allowOverwrite,omitempty"`
-}
-
-// create FAST app draft request using above json payload
-func (p *BigipNextCM) PostFastApplicationDraft(config *FastRequestDraft) (string, error) {
-	fastURL := fmt.Sprintf("%s%s%s", p.Host, uriFast, "/appsvcs")
-	f5osLogger.Info("[PostFastApplicationDraft]", "URI Path", fastURL)
-	f5osLogger.Info("[PostFastApplicationDraft]", "Config", hclog.Fmt("%+v", config))
-	body, err := json.Marshal(config)
-	if err != nil {
-		return "", err
-	}
-	respData, err := p.doCMRequest("POST", fastURL, body)
-	if err != nil {
-		return "", err
-	}
-	f5osLogger.Info("[PostFastApplicationDraft]", "Data::", hclog.Fmt("%+v", string(respData)))
-	respString := make(map[string]interface{})
-	err = json.Unmarshal(respData, &respString)
-	if err != nil {
-		return "", err
-	}
-	f5osLogger.Info("[PostFastApplicationDraft]", "Task Path", hclog.Fmt("%+v", respString["id"].(string)))
-	return respString["id"].(string), nil
-}
+// // create FAST app draft request using above json payload
+// func (p *BigipNextCM) PostFastApplicationDraft(config *FastRequestDraft) (string, error) {
+// 	fastURL := fmt.Sprintf("%s%s%s", p.Host, uriFast, "/appsvcs")
+// 	f5osLogger.Info("[PostFastApplicationDraft]", "URI Path", fastURL)
+// 	f5osLogger.Info("[PostFastApplicationDraft]", "Config", hclog.Fmt("%+v", config))
+// 	body, err := json.Marshal(config)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	respData, err := p.doCMRequest("POST", fastURL, body)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	f5osLogger.Info("[PostFastApplicationDraft]", "Data::", hclog.Fmt("%+v", string(respData)))
+// 	respString := make(map[string]interface{})
+// 	err = json.Unmarshal(respData, &respString)
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	f5osLogger.Info("[PostFastApplicationDraft]", "Task Path", hclog.Fmt("%+v", respString["id"].(string)))
+// 	return respString["id"].(string), nil
+// }
 
 type CertificateRequestDraft struct {
 	Issuer                 string   `json:"issuer,omitempty"`
@@ -3130,14 +3106,18 @@ func (p *BigipNextCM) CheckCMHANodesStatus(nodes []string) ([]CMHANodesStatus, e
 	uriNodes := "/v1/system/infra/nodes"
 
 	var resp []CMHANodesStatus
-	start := time.Now()
-	waitTime := time.Duration(5) * time.Minute
 
+	waitTime := time.Duration(7) * time.Minute
+	start := time.Now()
 	for time.Since(start) < waitTime {
 		ret, err := p.GetCMRequest(uriNodes)
-
 		if err != nil {
-			f5osLogger.Error("[CheckCMHANodesStatus]", "Error", err)
+			if strings.Contains(err.Error(), "401") {
+				p.CMTokenRefreshNew()
+				continue
+			}
+			f5osLogger.Warn("[CheckCMHANodesStatus]", "Warn", err)
+			f5osLogger.Info("[CheckCMHANodesStatus]", "Info", "retrying in 3 seconds")
 			time.Sleep(3 * time.Second)
 			continue
 		}
@@ -3173,7 +3153,8 @@ func (p *BigipNextCM) CheckCMHANodeReadyState(resp []CMHANodesStatus, nodes []st
 	}
 
 	if len(waitingNodes) > 0 {
-		f5osLogger.Info("[CheckCMHANodesStatus]", "Info", fmt.Sprintf("Waiting for nodes to be ready: %v", waitingNodes))
+		pendingNodes := strings.Join(waitingNodes, ", ")
+		f5osLogger.Info("[CheckCMHANodesStatus]", "Info", fmt.Sprintf("Waiting for nodes to be ready: %v", pendingNodes))
 		return waitingNodes
 	}
 	f5osLogger.Info("[CheckCMHANodesStatus]", "Info", fmt.Sprintf("All nodes are ready: %v", nodes))
@@ -3254,14 +3235,12 @@ func (p *BigipNextCM) BootstrapCM(timeout int64) (string, error) {
 	var res BootstrapCMResp
 
 	resp, err := p.PostCMRequest(uriBootstrap, nil)
-
 	if err != nil {
 		f5osLogger.Error("[BootstrapCM]", "Error", err)
 		return "", err
 	}
 
 	json.Unmarshal(resp, &res)
-
 	start := time.Now()
 
 	for res.Status == "RUNNING" && time.Since(start) < (time.Second*time.Duration(timeout)) {
@@ -3272,17 +3251,18 @@ func (p *BigipNextCM) BootstrapCM(timeout int64) (string, error) {
 				time.Sleep(3 * time.Second)
 				continue
 			}
-
+			if strings.Contains(err.Error(), "401") {
+				p.CMTokenRefreshNew()
+				continue
+			}
 			f5osLogger.Error("[BootstrapCM]", "Error", err)
 			return "", err
 		}
 
 		json.Unmarshal(resp, &res)
-
 		if res.Status == "COMPLETED" {
 			break
 		}
-
 		if res.Status == "FAILED" {
 			return "", fmt.Errorf("bootstrap failed: %v", res.Step)
 		}
@@ -3312,6 +3292,291 @@ func (p *BigipNextCM) GetCMExternalStorage() (string, error) {
 	resp, err := p.GetCMRequest(uriStorage)
 
 	return string(resp), err
+}
+
+type NextInstancesOnCM struct {
+	Instances NextInstances `json:"_embedded,omitempty"`
+}
+
+type NextInstances struct {
+	InstancesArr []NextInstance `json:"devices,omitempty"`
+}
+
+type NextInstance struct {
+	Address      string `json:"address,omitempty"`
+	Hostname     string `json:"hostname,omitempty"`
+	Id           string `json:"id,omitempty"`
+	Version      string `json:"version,omitempty"`
+	PlatformName string `json:"platform_name,omitempty"`
+	PlatformType string `json:"platform_type,omitempty"`
+	ShortId      string `json:"short_id,omitempty"`
+}
+
+type FilesOnNextInstance struct {
+	Embedded struct {
+		Files []struct {
+			FileName string `json:"fileName,omitempty"`
+			Hash     string `json:"hash,omitempty"`
+			Id       string `json:"id,omitempty"`
+			Name     string `json:"name,omitempty"`
+			Size     int64  `json:"size,omitempty"`
+			Type     string `json:"type,omitempty"`
+			Uri      string `json:"uri,omitempty"`
+		} `json:"files,omitempty"`
+	} `json:"_embedded,omitempty"`
+}
+
+type UpgradeTask struct {
+	Created       string `json:"created,omitempty"`
+	Details       string `json:"details,omitempty"`
+	Id            string `json:"id,omitempty"`
+	ImageName     string `json:"image_name,omitempty"`
+	InstanceId    string `json:"instance_id,omitempty"`
+	SignatureName string `json:"signature_name,omitempty"`
+	State         string `json:"state,omitempty"`
+	Status        string `json:"status,omitempty"`
+	Step          string `json:"step,omitempty"`
+	FailureReason string `json:"failure_reason,omitempty"`
+	UpgradeType   string `json:"upgrade_type,omitempty"`
+}
+
+func (p *BigipNextCM) GetNextInstanceID(ipAddr string) (string, error) {
+	var nextInstances *NextInstancesOnCM
+	resp, err := p.GetCMRequest(uriNextInstances)
+
+	if err != nil {
+		f5osLogger.Error("[GetNextInstanceID]", "Error while fetching NEXT instance ID", err)
+		return "", err
+	}
+
+	err = json.Unmarshal(resp, &nextInstances)
+	if err != nil {
+		return "", err
+	}
+
+	for _, instance := range nextInstances.Instances.InstancesArr {
+		if instance.Address == ipAddr {
+			return instance.Id, nil
+		}
+	}
+
+	return "", fmt.Errorf("NEXT instance with IP %v not found", ipAddr)
+}
+
+func (p *BigipNextCM) GetImageAndSignatureName(nextInstanceId, upgradeFileName, sigFileName string) (string, string, error) {
+	uri := uriProxy + "/" + nextInstanceId + "?path=%2Ffiles"
+
+	var filesOnNextInstance *FilesOnNextInstance
+
+	resp, err := p.GetCMRequest(uri)
+
+	if err != nil {
+		return "", "", err
+	}
+
+	json.Unmarshal(resp, &filesOnNextInstance)
+	var imageHash string
+	var sigHash string
+
+	for _, file := range filesOnNextInstance.Embedded.Files {
+		tokens := strings.Split(file.Uri, "/")
+		hash := tokens[len(tokens)-1]
+		if file.Name == upgradeFileName {
+			imageHash = hash
+		} else if file.Name == sigFileName {
+			sigHash = hash
+		}
+	}
+
+	if imageHash == "" || sigHash == "" {
+		return "", "", fmt.Errorf("image or signature file not found")
+	}
+
+	f5osLogger.Info("[GetImageAndSignatureName]", "Image Hash", imageHash)
+	f5osLogger.Info("[GetImageAndSignatureName]", "Signature Hash", sigHash)
+	return imageHash, sigHash, nil
+}
+
+func (p *BigipNextCM) UpgradeVE(nextInstanceId, imageName, signatureName string) (string, error) {
+	uriUpgrade := fmt.Sprintf("%s/%s/upgrade", uriNextInstances, nextInstanceId)
+
+	payload := struct {
+		UpgradeType   string `json:"upgrade_type,omitempty"`
+		ImageName     string `json:"image_name,omitempty"`
+		SignatureName string `json:"signature_name,omitempty"`
+	}{
+		UpgradeType:   "ve",
+		ImageName:     imageName,
+		SignatureName: signatureName,
+	}
+
+	byteBody, err := json.Marshal(payload)
+
+	if err != nil {
+		return "", err
+	}
+
+	res, err := p.PostCMRequest(uriUpgrade, byteBody)
+	if err != nil {
+		return "", err
+	}
+
+	respBody := make(map[string]interface{})
+	err = json.Unmarshal(res, &respBody)
+	if err != nil {
+		return "", err
+	}
+
+	upgradeTaskPath := respBody["path"].(string)
+
+	tokens := strings.Split(upgradeTaskPath, "/")
+	upgradeTaskId := tokens[len(tokens)-1]
+
+	return upgradeTaskId, nil
+}
+
+func (p *BigipNextCM) UpgradeNextInstanceAppliance(nextInstanceId string, params map[string]interface{}) (string, error) {
+	uri := fmt.Sprintf("%s/%s/upgrade", uriNextInstances, nextInstanceId)
+
+	payload := struct {
+		UpgradeType       string `json:"upgrade_type,omitempty"`
+		PartitionAddress  string `json:"partition_address,omitempty"`
+		PartitionPort     int64  `json:"partition_port,omitempty"`
+		PartitionUser     string `json:"partition_user,omitempty"`
+		PartitionPassword string `json:"partition_password,omitempty"`
+		TenantName        string `json:"tenant_name,omitempty"`
+		ImageName         string `json:"image_name,omitempty"`
+	}{
+		UpgradeType:       "APPLIANCE",
+		PartitionAddress:  params["partition_address"].(string),
+		PartitionPort:     params["partition_port"].(int64),
+		PartitionUser:     params["partition_username"].(string),
+		PartitionPassword: params["partition_password"].(string),
+		TenantName:        params["tenant_name"].(string),
+		ImageName:         params["image_name"].(string),
+	}
+
+	byteBody, err := json.Marshal(payload)
+	if err != nil {
+		f5osLogger.Error("[UpdateNextInstanceAppliance]", "Error", err)
+		return "", err
+	}
+
+	resp, err := p.PostCMRequest(uri, byteBody)
+	if err != nil {
+		f5osLogger.Error("[UpdateNextInstanceAppliance]", "Error", err)
+		return "", err
+	}
+
+	respBody := make(map[string]interface{})
+	err = json.Unmarshal(resp, &respBody)
+	if err != nil {
+		return "", err
+	}
+
+	upgradeTaskPath := respBody["path"].(string)
+
+	tokens := strings.Split(upgradeTaskPath, "/")
+	upgradeTaskId := tokens[len(tokens)-1]
+
+	return upgradeTaskId, nil
+}
+
+func (p *BigipNextCM) WaitForNextInstanceUpgrade(taskId string, timeout int64) (string, string, error) {
+	start := time.Now()
+
+	task, err := p.GetNextInstanceUpgradeTaskStatus(taskId)
+	if err != nil {
+		f5osLogger.Error("[WaitForNextInstanceUpgrade]", "Error ", err)
+		return "", "", err
+	}
+
+	for time.Since(start) < time.Duration(timeout)*time.Second && task.Status != "completed" {
+		task, err = p.GetNextInstanceUpgradeTaskStatus(taskId)
+		if err != nil {
+			if strings.Contains(err.Error(), "401") {
+				p.CMTokenRefreshNew()
+				continue
+			}
+			f5osLogger.Error("[WaitForNextInstanceUpgrade]", "Error ", err)
+			return "", "", err
+		}
+
+		if task.Status == "failed" {
+			return task.Status, task.Details, nil
+		}
+
+		if task.State == "waitForUserInput" {
+			err = p.sendUserInputForUpgrade(taskId)
+			if err != nil {
+				return "", "", err
+			}
+		}
+
+		if task.Status == "completed" {
+			return task.Status, "", nil
+		}
+		time.Sleep(3 * time.Second)
+	}
+
+	return task.Status, task.Details, nil
+}
+
+func (p *BigipNextCM) sendUserInputForUpgrade(taskId string) error {
+	userInput := struct {
+		IsUserInputAccepted bool `json:"is_user_accepted_untrusted_cert,omitempty"`
+	}{
+		IsUserInputAccepted: true,
+	}
+
+	uri := fmt.Sprintf("%s/%s", uriNextInstanceUpgradeTask, taskId)
+	payload, err := json.Marshal(userInput)
+	if err != nil {
+		return err
+	}
+
+	_, err = p.doCMRequest("PATCH", uri, payload)
+
+	if err != nil {
+		f5osLogger.Error(
+			"[sendUserInputForUpgrade]",
+			"error while sending user input for accepting untrusted certificate while upgrade",
+			err,
+		)
+		return err
+	}
+
+	return nil
+}
+
+func (p *BigipNextCM) GetNextInstanceUpgradeTaskStatus(upgradeTaskId string) (UpgradeTask, error) {
+	uri := fmt.Sprintf("%s/%s", uriNextInstanceUpgradeTask, upgradeTaskId)
+
+	var upgradeTask UpgradeTask
+
+	resp, err := p.GetCMRequest(uri)
+	if err != nil {
+		f5osLogger.Error(
+			"[GetNextInstanceUpgradeTaskStatus]",
+			"error while fetching upgrade task status",
+			err,
+		)
+		return upgradeTask, err
+	}
+
+	err = json.Unmarshal(resp, &upgradeTask)
+	if err != nil {
+		f5osLogger.Error(
+			"[GetNextInstanceUpgradeTaskStatus]",
+			"error while unmarshalling upgrade task status",
+			err,
+		)
+		return upgradeTask, err
+	}
+
+	f5osLogger.Info("[GetNextInstanceUpgradeTaskStatus]", "Upgrade Task Status", upgradeTask.Status)
+	f5osLogger.Info("[GetNextInstanceUpgradeTaskStatus]", "Upgrade Task Step", upgradeTask.Step)
+	return upgradeTask, nil
 }
 
 // https://10.144.73.240/api/device/v1/instances
@@ -3438,3 +3703,238 @@ func (p *BigipNextCM) GetCMExternalStorage() (string, error) {
 //     "task_type": "instance_creation",
 //     "updated": "2023-12-04T18:44:26.843488Z"
 // }
+
+type CMBackupRequestDraft struct {
+	EncryptionPassword   string                `json:"encryption_password,omitempty"`
+	Name                 string                `json:"name,omitempty"`
+	Type                 string                `json:"type,omitempty"`
+	ScheduleType         string                `json:"schedule_type,omitempty"`
+	Schedule             Schedule              `json:"schedule,omitempty"`
+	BasicWithInterval    *BasicWithInterval    `json:"BasicWithInterval,omitempty"`
+	DaysOfTheWeek        *DaysOfTheWeek        `json:"DaysOfTheWeek,omitempty"`
+	DayAndTimeOfTheMonth *DayAndTimeOfTheMonth `json:"DayAndTimeOfTheMonth,omitempty"`
+	Id                   string                `json:"id,omitempty"`
+}
+
+type CMRestoreRequestDraft struct {
+	EncryptionPassword string `json:"encryption_password,omitempty"`
+	FileId             string `json:"file_id,omitempty"`
+}
+
+type Schedule struct {
+	StartAt string `json:"start_at,omitempty"`
+	EndAt   string `json:"end_at,omitempty"`
+}
+
+type DaysOfTheWeek struct {
+	Interval           int     `json:"interval,omitempty"`
+	HourToRunOn        int     `json:"hourToRunOn,omitempty"`
+	MinuteToRunOn      int     `json:"minuteToRunOn,omitempty"`
+	DaysOfTheWeekToRun []int64 `json:"daysOfTheWeekToRun,omitempty"`
+}
+
+type DayAndTimeOfTheMonth struct {
+	Interval           int `json:"interval,omitempty"`
+	HourToRunOn        int `json:"hourToRunOn,omitempty"`
+	MinuteToRunOn      int `json:"minuteToRunOn,omitempty"`
+	DayOfTheMonthToRun int `json:"dayOfTheMonthToRun,omitempty"`
+}
+
+type Interval struct {
+	Interval      int64 `json:"interval,omitempty"`
+	HourToRunOn   int64 `json:"hourToRunOn,omitempty"`
+	MinuteToRunOn int64 `json:"minuteToRunOn,omitempty"`
+}
+
+type BasicWithInterval struct {
+	IntervalToRun int64  `json:"intervalToRun,omitempty"`
+	IntervalUnit  string `json:"intervalUnit,omitempty"`
+}
+
+// Patch Schedule - api/v1/system/backups/schedule/db869628-86ad-42a6-82e1-6be2cde86570
+// create POST request to Create BackUp of CM
+func (p *BigipNextCM) BackUpCM(config *CMBackupRequestDraft, method string) (string, string, error) {
+	body, err := json.Marshal(config)
+	if err != nil {
+		return "", "", err
+	}
+	f5osLogger.Info("[BackUpCM]", "body::", hclog.Fmt("%+v", string(body)))
+
+	var respData []byte
+	var schedule = false
+	var file_name = config.Name
+
+	if method == "POST" {
+		if config.Schedule.StartAt == "" {
+			// light backup
+			respData, err = p.PostCMRequest(uriCMBackup, body)
+		} else {
+			// schedule a CM backup
+			schedule = true
+			respData, err = p.PostCMRequest(uriCMBackupSchedule, body)
+		}
+	} else if method == "PUT" {
+		schedule = true
+		taskId := config.Id
+		uriPutCMBackupSchedule := fmt.Sprintf("%s/%s", uriCMBackupSchedule, taskId)
+		respData, err = p.PutCMRequest(uriPutCMBackupSchedule, body)
+	}
+	if err != nil {
+		return "", "", err
+	}
+	f5osLogger.Info("[BackUpCM]", "Data::", hclog.Fmt("%+v", string(respData)))
+	respString := make(map[string]interface{})
+	err = json.Unmarshal(respData, &respString)
+	if err != nil {
+		return "", "", err
+	}
+	f5osLogger.Info("[BackUpCM]", "Task Path", hclog.Fmt("%+v", respString["path"].(string)))
+	pathList := strings.Split(respString["path"].(string), "/")
+	if !schedule {
+		file_name, err = p.getBackupTaskStatus(pathList[len(pathList)-1])
+		if err != nil {
+			return "", "", err
+		}
+		response, err := p.GetBackUpConfig(file_name, schedule, false)
+		if err != nil {
+			return "", "", err
+		}
+		return file_name, response.(map[string]interface{})["_embedded"].(map[string]interface{})["files"].([]interface{})[0].(map[string]interface{})["id"].(string), nil
+	}
+
+	return file_name, pathList[len(pathList)-1], nil
+}
+
+func (p *BigipNextCM) RestoreCM(config *CMRestoreRequestDraft) error {
+	body, err := json.Marshal(config)
+	if err != nil {
+		return err
+	}
+	f5osLogger.Info("[RestoreCM]", "body::", hclog.Fmt("%+v", string(body)))
+
+	var respData []byte
+	respData, err = p.PostCMRequest(uriCMRestore, body)
+	if err != nil {
+		return err
+	}
+	f5osLogger.Info("[RestoreCM]", "Data::", hclog.Fmt("%+v", string(respData)))
+
+	var respInfo map[string]interface{}
+	err = json.Unmarshal(respData, &respInfo)
+	if err != nil {
+		return err
+	}
+
+	timeout := 600 * time.Second
+	endtime := time.Now().Add(timeout)
+
+	for time.Now().Before(endtime) {
+		time.Sleep(30 * time.Second)
+		respData, err := p.GetCMRequest(uriCMRestoreTaskStatus)
+		if err != nil {
+			f5osLogger.Info("[RestoreCM] Error %v", err.Error())
+			if strings.Contains(err.Error(), "unknown error from message catalog ID SHARED-00001") {
+				continue
+			} else {
+				return err
+			}
+		}
+		f5osLogger.Info("[RestoreCM]", "Task Status::", hclog.Fmt("%+v", string(respData)))
+		err = json.Unmarshal(respData, &respInfo)
+		if err != nil {
+			return err
+		}
+		f5osLogger.Info("[RestoreCM]", "restore status::", hclog.Fmt("%+v", string(respData)))
+		if respInfo["_embedded"].(map[string]interface{})["tasks"].([]interface{})[0].(map[string]interface{})["status"].(string) == "COMPLETED" {
+			f5osLogger.Info("[RestoreCM] Restore Completed Successfully")
+			return nil
+		}
+		if respInfo["_embedded"].(map[string]interface{})["tasks"].([]interface{})[0].(map[string]interface{})["status"].(string) == "FAILED" {
+			return fmt.Errorf("Restore Task failed with Reason:%+v", respInfo["_embedded"].(map[string]interface{})["tasks"].([]interface{})[0].(map[string]interface{})["failure_reason"])
+		}
+
+	}
+	return fmt.Errorf("task status is still in :%+v within timeout period of:%+v", respInfo["_embedded"].(map[string]interface{})["tasks"].([]interface{})[0].(map[string]interface{})["status"].(string), timeout)
+}
+
+func (p *BigipNextCM) DeleteBackup(id string, scheduled bool) error {
+	var deleteBackupURL string
+	if scheduled {
+		deleteBackupURL = fmt.Sprintf("%s%s/%s", p.Host, uriDeleteScheduleBackup, id)
+	} else {
+		deleteBackupURL = fmt.Sprintf("%s%s/%s", p.Host, uriGetBackupFiles, id)
+		// add the url
+	}
+	f5osLogger.Info("[DeleteBackup]", "URI Path", deleteBackupURL)
+	_, err := p.doCMRequest("DELETE", deleteBackupURL, nil)
+	if err != nil {
+		return err
+	}
+	// respString := make(map[string]interface{})
+	// err = json.Unmarshal(respData, &respString)
+	// if err != nil {
+	// 	return err
+	// }
+	// f5osLogger.Info("[DeleteBackup]", "Task Message", hclog.Fmt("%+v", respString["message"].(string)))
+
+	// if !strings.Contains(respString["message"].(string), "deleted successfully") {
+	// 	return err
+	// }
+	return nil
+}
+
+func (p *BigipNextCM) getBackupTaskStatus(taskid string) (string, error) {
+
+	// api/v1/system/backup-tasks/381cbd47-6762-4820-956e-a5804a2d79cc
+	getTaskUrl := fmt.Sprintf("%s/%s", uriCMBackupTask, taskid)
+	f5osLogger.Info("[getBackupTaskStatus]", "getTaskUrl", getTaskUrl)
+	var respInfo map[string]interface{}
+	timeout := 360 * time.Second
+	endtime := time.Now().Add(timeout)
+	for time.Now().Before(endtime) {
+		time.Sleep(10 * time.Second)
+		respData, err := p.GetCMRequest(getTaskUrl)
+		if err != nil {
+			return "", err
+		}
+		f5osLogger.Info("[getBackupTaskStatus]", "Data::", hclog.Fmt("%+v", string(respData)))
+		err = json.Unmarshal(respData, &respInfo)
+		if err != nil {
+			return "", err
+		}
+		if respInfo["_embedded"].(map[string]interface{})["tasks"].([]interface{})[0].(map[string]interface{})["status"].(string) == "COMPLETED" {
+			return respInfo["_embedded"].(map[string]interface{})["tasks"].([]interface{})[0].(map[string]interface{})["file_name"].(string), nil
+		}
+		if respInfo["_embedded"].(map[string]interface{})["tasks"].([]interface{})[0].(map[string]interface{})["status"].(string) == "failed" {
+			return "", fmt.Errorf("backup-tasks failed with Status:%+v", respInfo["_embedded"].(map[string]interface{})["tasks"].([]interface{})[0].(map[string]interface{})["status"])
+		}
+	}
+	return "", fmt.Errorf("task status is still in :%+v within timeout period of:%+v", respInfo["_embedded"].(map[string]interface{})["tasks"].([]interface{})[0].(map[string]interface{})["status"].(string), timeout)
+}
+
+func (p *BigipNextCM) GetBackUpConfig(id string, scheduled bool, restore bool) (interface{}, error) {
+	getBackupConfigURL := ""
+	if restore {
+		getBackupConfigURL = fmt.Sprintf("%s%s?%s=%s%s", p.Host, uriGetBackupConfig, "filter", "file_name+eq+", "%27"+id+"%27")
+	} else if scheduled {
+		getBackupConfigURL = fmt.Sprintf("%s%s/%s", p.Host, uriGetScheduleBackupCM, id)
+	} else {
+		getBackupConfigURL = fmt.Sprintf("%s%s?%s=%s%s", p.Host, uriGetBackupFiles, "filter", "file_name+eq+", "%27"+id+"%27")
+	}
+
+	f5osLogger.Info("[GetBackUpConfig]", "ID/Name", id)
+
+	f5osLogger.Info("[GetBackUpConfig]", "URI Path", getBackupConfigURL)
+	respData, err := p.doCMRequest("GET", getBackupConfigURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[GetBackUpConfig]", "Resp ", hclog.Fmt("%+v", string(respData)))
+	respString := make(map[string]interface{})
+	err = json.Unmarshal(respData, &respString)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[GetBackUpConfig]", "Resp Message", hclog.Fmt("%+v", respString))
+	return respString, nil
+}

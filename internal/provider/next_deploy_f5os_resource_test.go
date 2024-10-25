@@ -29,20 +29,14 @@ func TestUnitNextDeployF5OSResourceTC1(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `{"_links":{"self":{"href":"/v1/instances/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e"}},"path":"/v1/instances/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e"}`)
 	})
-
-	mux.HandleFunc("/api/device/v1/instances/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v1/spaces/default/instances/initialization/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, _ = fmt.Fprintf(w, `{"_links":{"self":{"href":"/v1/instances/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e"}},"completed":"2024-07-16T17:25:01.919956Z","created":"2024-07-16T17:16:46.036781Z","failure_reason":"","id":"7597ff87-d26d-4154-b03d-9e7999d24f0e","name":"instance creation","payload":{"discovery":{"port":5443,"address":"10.144.10.182","device_user":"admin","device_password":"*****","management_user":"admin-cm","management_password":"*****"},"onboarding":{"mode":"STANDALONE","nodes":[{"password":"*****","username":"admin","managementAddress":"10.144.10.182"}],"platformType":"RSERIES"},"instantiation":{"Request":{"F5osRequest":{"provider_id":"171d5623-e25a-45e5-8e2a-043fc952cbf1","provider_type":"rseries","next_instances":[{"nodes":[1],"vlans":[444,555],"mgmt_ip":"10.144.10.182","timeout":600,"hostname":"demovm01-ravi-r10800","cpu_cores":4,"disk_size":30,"mgmt_prefix":24,"mgmt_gateway":"10.144.10.254","admin_password":"*****","tenant_image_name":"BIG-IP-Next-20.2.1-2.430.2+0.0.48","tenant_deployment_file":"BIG-IP-Next-20.2.1-2.430.2+0.0.48.yaml"}]},"VsphereRequest":null},"BaseTask":{"id":"","payload":null,"provider_id":"171d5623-e25a-45e5-8e2a-043fc952cbf1","provider_type":"rseries"},"VsphereRequest":null}},"stage":"Discovery","state":"discoveryDone","status":"completed","task_type":"instance_creation","updated":"2024-07-16T17:25:01.919956Z"}`)
+		_, _ = fmt.Fprintf(w, `{"_links":{"self":{"href":"/v1/instances/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e"}},"completed":"2024-10-10T08:26:29.739925Z","created":"2024-10-10T08:17:55.937196Z","failure_reason":"","id":"7597ff87-d26d-4154-b03d-9e7999d24f0e","name":"instance creation","payload":{"discovery":{"port":5443,"address":"10.144.140.84","device_user":"admin","device_password":"*****","management_user":"admin-cm","management_password":"*****"},"onboarding":{"mode":"STANDALONE","nodes":[{"password":"*****","username":"admin","managementAddress":"10.144.140.84"}],"platformType":"RSERIES"},"instantiation":{"Request":{"F5osRequest":{"provider_id":"7afd3944-c72a-4092-8f49-bec48a640a6e","provider_type":"rseries","next_instances":[{"nodes":[1],"vlans":[444,555],"mgmt_ip":"10.144.140.84","timeout":600,"hostname":"demovm01-ravi-r5600","cpu_cores":4,"disk_size":30,"mgmt_prefix":24,"mgmt_gateway":"10.144.140.254","admin_password":"*****","tenant_image_name":"BIG-IP-Next-20.3.0-2.716.2+0.0.44","tenant_deployment_file":"BIG-IP-Next-20.3.0-2.716.2+0.0.44.yaml"}]},"VsphereRequest":null},"BaseTask":{"id":"","payload":null,"provider_id":"7afd3944-c72a-4092-8f49-bec48a640a6e","provider_type":"rseries"},"VsphereRequest":null}},"stage":"Discovery","state":"discoveryDone","status":"completed","task_type":"instance_creation","updated":"2024-10-10T08:26:29.739925Z"}`)
 	})
-
 	mux.HandleFunc("/api/device/v1/inventory", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `{"_embedded":{"devices":[{"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800/6cdf38ed-a258-4d92-a64d-972238b27400'"}},"address":"10.144.10.182","certificate_validated":"2024-07-16T17:24:12.848618Z","certificate_validity":false,"hostname":"demovm01-ravi-r10800","id":"6cdf38ed-a258-4d92-a64d-972238b27400","mode":"STANDALONE","platform_name":"R10K","platform_type":"APPLIANCE","port":5443,"short_id":"bcpED8hJ","version":"20.2.1-2.430.2+0.0.48"}]},"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800"}},"count":1,"total":1}`)
 	})
-	// mux.HandleFunc("/api/device/v1/inventory?filter=hostname+eq+'demovm01-ravi-r10800'", func(w http.ResponseWriter, r *http.Request) {
-	// 	w.WriteHeader(http.StatusOK)
-	// 	_, _ = fmt.Fprintf(w, `{"_embedded":{"devices":[{"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800/6cdf38ed-a258-4d92-a64d-972238b27400'"}},"address":"10.144.10.182","certificate_validated":"2024-07-16T17:24:12.848618Z","certificate_validity":false,"hostname":"demovm01-ravi-r10800","id":"6cdf38ed-a258-4d92-a64d-972238b27400","mode":"STANDALONE","platform_name":"R10K","platform_type":"APPLIANCE","port":5443,"short_id":"bcpED8hJ","version":"20.2.1-2.430.2+0.0.48"}]},"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800"}},"count":1,"total":1}`)
-	// })
 	mux.HandleFunc("/api/v1/spaces/default/instances/6cdf38ed-a258-4d92-a64d-972238b27400", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		if r.Method == http.MethodDelete {
@@ -52,9 +46,6 @@ func TestUnitNextDeployF5OSResourceTC1(t *testing.T) {
 			_, _ = fmt.Fprintf(w, `{"_embedded":{"devices":[{"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800/6cdf38ed-a258-4d92-a64d-972238b27400'"}},"address":"10.144.10.182","certificate_validated":"2024-07-16T17:24:12.848618Z","certificate_validity":false,"hostname":"demovm01-ravi-r10800","id":"6cdf38ed-a258-4d92-a64d-972238b27400","mode":"STANDALONE","platform_name":"R10K","platform_type":"APPLIANCE","port":5443,"short_id":"bcpED8hJ","version":"20.2.1-2.430.2+0.0.48"}]},"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800"}},"count":1,"total":1}`)
 		}
 	})
-	// mux.HandleFunc("/api/v1/spaces/default/instances/6cdf38ed-a258-4d92-a64d-972238b27400", func(w http.ResponseWriter, r *http.Request) {
-	//
-	// })
 	mux.HandleFunc("/api/device/v1/deletion-tasks/837120e1-7420-4e86-afc5-213dd2b07f26", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `{"_links":{"self":{"href":"/v1/deletion-tasks/837120e1-7420-4e86-afc5-213dd2b07f26"}},"address":"10.144.10.182","completed":"2024-07-16T17:35:42.811049Z","created":"2024-07-16T17:32:36.411802Z","device_id":"6cdf38ed-a258-4d92-a64d-972238b27400","failure_reason":"","id":"837120e1-7420-4e86-afc5-213dd2b07f26","state":"instanceRemovalDone","status":"completed"}`)
@@ -100,20 +91,14 @@ func TestUnitNextDeployF5OSResourceTC2(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `{"_links":{"self":{"href":"/v1/instances/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e"}},"path":"/v1/instances/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e"}`)
 	})
-
-	mux.HandleFunc("/api/device/v1/instances/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/v1/spaces/default/instances/initialization/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		_, _ = fmt.Fprintf(w, `{"_links":{"self":{"href":"/v1/instances/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e"}},"completed":"2024-07-16T17:25:01.919956Z","created":"2024-07-16T17:16:46.036781Z","failure_reason":"","id":"7597ff87-d26d-4154-b03d-9e7999d24f0e","name":"instance creation","payload":{"discovery":{"port":5443,"address":"10.144.10.182","device_user":"admin","device_password":"*****","management_user":"admin-cm","management_password":"*****"},"onboarding":{"mode":"STANDALONE","nodes":[{"password":"*****","username":"admin","managementAddress":"10.144.10.182"}],"platformType":"RSERIES"},"instantiation":{"Request":{"F5osRequest":{"provider_id":"171d5623-e25a-45e5-8e2a-043fc952cbf1","provider_type":"rseries","next_instances":[{"nodes":[1],"vlans":[444,555],"mgmt_ip":"10.144.10.182","timeout":600,"hostname":"demovm01-ravi-r10800","cpu_cores":4,"disk_size":30,"mgmt_prefix":24,"mgmt_gateway":"10.144.10.254","admin_password":"*****","tenant_image_name":"BIG-IP-Next-20.2.1-2.430.2+0.0.48","tenant_deployment_file":"BIG-IP-Next-20.2.1-2.430.2+0.0.48.yaml"}]},"VsphereRequest":null},"BaseTask":{"id":"","payload":null,"provider_id":"171d5623-e25a-45e5-8e2a-043fc952cbf1","provider_type":"rseries"},"VsphereRequest":null}},"stage":"Discovery","state":"discoveryDone","status":"completed","task_type":"instance_creation","updated":"2024-07-16T17:25:01.919956Z"}`)
+		_, _ = fmt.Fprintf(w, `{"_links":{"self":{"href":"/v1/instances/tasks/7597ff87-d26d-4154-b03d-9e7999d24f0e"}},"completed":"2024-10-10T08:26:29.739925Z","created":"2024-10-10T08:17:55.937196Z","failure_reason":"","id":"7597ff87-d26d-4154-b03d-9e7999d24f0e","name":"instance creation","payload":{"discovery":{"port":5443,"address":"10.144.140.84","device_user":"admin","device_password":"*****","management_user":"admin-cm","management_password":"*****"},"onboarding":{"mode":"STANDALONE","nodes":[{"password":"*****","username":"admin","managementAddress":"10.144.140.84"}],"platformType":"RSERIES"},"instantiation":{"Request":{"F5osRequest":{"provider_id":"7afd3944-c72a-4092-8f49-bec48a640a6e","provider_type":"rseries","next_instances":[{"nodes":[1],"vlans":[444,555],"mgmt_ip":"10.144.140.84","timeout":600,"hostname":"demovm01-ravi-r5600","cpu_cores":4,"disk_size":30,"mgmt_prefix":24,"mgmt_gateway":"10.144.140.254","admin_password":"*****","tenant_image_name":"BIG-IP-Next-20.3.0-2.716.2+0.0.44","tenant_deployment_file":"BIG-IP-Next-20.3.0-2.716.2+0.0.44.yaml"}]},"VsphereRequest":null},"BaseTask":{"id":"","payload":null,"provider_id":"7afd3944-c72a-4092-8f49-bec48a640a6e","provider_type":"rseries"},"VsphereRequest":null}},"stage":"Discovery","state":"discoveryDone","status":"completed","task_type":"instance_creation","updated":"2024-10-10T08:26:29.739925Z"}`)
 	})
-
 	mux.HandleFunc("/api/device/v1/inventory", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `{"_embedded":{"devices":[{"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800/6cdf38ed-a258-4d92-a64d-972238b27400'"}},"address":"10.144.10.182","certificate_validated":"2024-07-16T17:24:12.848618Z","certificate_validity":false,"hostname":"demovm01-ravi-r10800","id":"6cdf38ed-a258-4d92-a64d-972238b27400","mode":"STANDALONE","platform_name":"R10K","platform_type":"APPLIANCE","port":5443,"short_id":"bcpED8hJ","version":"20.2.1-2.430.2+0.0.48"}]},"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800"}},"count":1,"total":1}`)
 	})
-	// mux.HandleFunc("/api/device/v1/inventory?filter=hostname+eq+'demovm01-ravi-r10800'", func(w http.ResponseWriter, r *http.Request) {
-	// 	w.WriteHeader(http.StatusOK)
-	// 	_, _ = fmt.Fprintf(w, `{"_embedded":{"devices":[{"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800/6cdf38ed-a258-4d92-a64d-972238b27400'"}},"address":"10.144.10.182","certificate_validated":"2024-07-16T17:24:12.848618Z","certificate_validity":false,"hostname":"demovm01-ravi-r10800","id":"6cdf38ed-a258-4d92-a64d-972238b27400","mode":"STANDALONE","platform_name":"R10K","platform_type":"APPLIANCE","port":5443,"short_id":"bcpED8hJ","version":"20.2.1-2.430.2+0.0.48"}]},"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800"}},"count":1,"total":1}`)
-	// })
 	mux.HandleFunc("/api/v1/spaces/default/instances/6cdf38ed-a258-4d92-a64d-972238b27400", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		if r.Method == http.MethodDelete {
@@ -123,13 +108,11 @@ func TestUnitNextDeployF5OSResourceTC2(t *testing.T) {
 			_, _ = fmt.Fprintf(w, `{"_embedded":{"devices":[{"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800/6cdf38ed-a258-4d92-a64d-972238b27400'"}},"address":"10.144.10.182","certificate_validated":"2024-07-16T17:24:12.848618Z","certificate_validity":false,"hostname":"demovm01-ravi-r10800","id":"6cdf38ed-a258-4d92-a64d-972238b27400","mode":"STANDALONE","platform_name":"R10K","platform_type":"APPLIANCE","port":5443,"short_id":"bcpED8hJ","version":"20.2.1-2.430.2+0.0.48"}]},"_links":{"self":{"href":"/v1/inventory?filter=hostname+eq+demovm01-ravi-r10800"}},"count":1,"total":1}`)
 		}
 	})
-	// mux.HandleFunc("/api/v1/spaces/default/instances/6cdf38ed-a258-4d92-a64d-972238b27400", func(w http.ResponseWriter, r *http.Request) {
-	//
-	// })
 	mux.HandleFunc("/api/device/v1/deletion-tasks/837120e1-7420-4e86-afc5-213dd2b07f26", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `{"_links":{"self":{"href":"/v1/deletion-tasks/837120e1-7420-4e86-afc5-213dd2b07f26"}},"address":"10.144.10.182","completed":"2024-07-16T17:35:42.811049Z","created":"2024-07-16T17:32:36.411802Z","device_id":"6cdf38ed-a258-4d92-a64d-972238b27400","failure_reason":"","id":"837120e1-7420-4e86-afc5-213dd2b07f26","state":"instanceRemovalDone","status":"completed"}`)
 	})
+
 	defer teardown()
 	resource.Test(t, resource.TestCase{
 		IsUnitTest:               true,

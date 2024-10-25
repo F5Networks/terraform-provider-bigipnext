@@ -179,7 +179,8 @@ func (p *BigipNextCMProvider) Resources(ctx context.Context) []func() resource.R
 	return []func() resource.Resource{
 		NewNextCMAS3DeployResource,
 		// NewNextCMFastHttpResource,
-		NewNextCMBackupRestoreResource,
+		NewCMBackupRestoreResource,
+		NewNextCMDeviceBackupRestoreResource,
 		// NewNextCMFastTemplateResource,
 		NewNextCMCertificateResource,
 		NewNextCMImportCertificateResource,
@@ -196,6 +197,7 @@ func (p *BigipNextCMProvider) Resources(ctx context.Context) []func() resource.R
 		NewCMNextJwtTokenResource,
 		NewCMNextLicenseActivateResource,
 		NewCMNextBootstrapResource,
+		NewCMNextUpgradeResource,
 	}
 }
 
