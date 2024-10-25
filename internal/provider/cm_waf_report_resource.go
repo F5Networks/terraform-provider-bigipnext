@@ -136,7 +136,7 @@ func (r *NextCMWAFReportResource) Schema(ctx context.Context, req resource.Schem
 							Optional:            true,
 							MarkdownDescription: "Specifies the name of the Categories.",
 							Validators: []validator.String{
-								stringvalidator.OneOf([]string{"Source IPs", "Geolocations", "URLs", "Violations", "Signatures", "Attack Types", "Threat Campaigns", "Malicious IPs (IPI)", ""}...),
+								stringvalidator.OneOf([]string{"Source IPs", "Geolocations", "URLs", "Violations", "Signatures", "Attack Types", "Threat Campaigns", "Malicious IPs (IPI)", "Malicious Bots"}...),
 							},
 						},
 					},

@@ -106,7 +106,7 @@ func (r *NextDeployVmwareResource) Schema(ctx context.Context, req resource.Sche
 					},
 					"resource_pool_name": schema.StringAttribute{
 						Required:            true,
-						MarkdownDescription: "The vSphere resource pool to create the VMs",
+						MarkdownDescription: "The vSphere resource pool name to create the VMs",
 					},
 					"content_library": schema.StringAttribute{
 						Required:            true,
@@ -275,7 +275,36 @@ func (r *NextDeployVmwareResource) Create(ctx context.Context, req resource.Crea
 	}
 	resCfg.ProviderId = types.StringValue(providerID.(string))
 	providerConfig := instanceConfig(ctx, resCfg)
+
+	nextCMinfo, err := r.client.CheckCMVersion()
+	if err != nil { // coverage-ignore
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to get Next CM Info:, got error: %s", err))
+		return
+	}
+	tflog.Info(ctx, fmt.Sprintf("[CREATE] Next CM Info:%+v\n", nextCMinfo))
+
+	if nextCMinfo != nil && nextCMinfo.(bool) {
+		dataCenterName := providerModel.DatacenterName.ValueString()
+		clusterName := providerModel.ClusterName.ValueString()
+		resourcePoolName := providerModel.ResourcepoolName.ValueString()
+		respData, err := r.client.GetResourcePoolID(providerID.(string), dataCenterName, clusterName, resourcePoolName)
+		if err != nil { // coverage-ignore
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to get Resource Pool ID:, got error: %s", err))
+			return
+		}
+		tflog.Info(ctx, fmt.Sprintf("[CREATE] Resource pool ID:%+v\n", string(respData)))
+		providerConfig.Parameters.VSphereProperties[0].ResourcePoolName = ""
+		providerConfig.Parameters.VSphereProperties[0].ResourcePoolId = string(respData)
+	}
+
+	// if nextCMinfo != nil && strings.Contains(nextCMinfo.(map[string]interface{})["version"].(string), "BIG-IP-Next-CentralManager-20.3") {
+	// 	resPoolID := providerConfig.Parameters.VSphereProperties[0].ResourcePoolName
+	// 	providerConfig.Parameters.VSphereProperties[0].ResourcePoolName = ""
+	// 	providerConfig.Parameters.VSphereProperties[0].ResourcePoolId = resPoolID
+	// }
+
 	tflog.Info(ctx, fmt.Sprintf("[CREATE] Deploy Next Instance:%+v\n", providerConfig.Parameters.Hostname))
+
 	respData, err := r.client.PostDeviceInstance(providerConfig, int(resCfg.Timeout.ValueInt64()))
 	if err != nil { // coverage-ignore
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to Deploy Instance, got error: %s", err))
@@ -318,7 +347,7 @@ func (r *NextDeployVmwareResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 	providerConfig := instanceConfig(ctx, resCfg)
-	tflog.Info(ctx, fmt.Sprintf("[UPDATE] Device Provider config:%+v\n", providerConfig))
+	tflog.Info(ctx, fmt.Sprintf("[UPDATE] Update call not supported !!! :%+v\n", providerConfig))
 	resp.Diagnostics.Append(resp.State.Set(ctx, &resCfg)...)
 }
 
@@ -352,8 +381,8 @@ func (r *NextDeployVmwareResource) ImportState(ctx context.Context, req resource
 }
 
 func instanceConfig(ctx context.Context, data *NextDeployVmwareResourceModel) *bigipnextsdk.CMReqDeviceInstance {
-	var deployConfig bigipnextsdk.CMReqDeviceInstance
-	deployConfig.TemplateName = "default-standalone-ve"
+	// var deployConfig bigipnextsdk.CMReqDeviceInstance
+	// deployConfig.TemplateName = "default-standalone-ve"
 	var providerModel VsphereProviderModel
 	diag := data.VsphereProvider.As(ctx, &providerModel, basetypes.ObjectAsOptions{})
 	if diag.HasError() { // coverage-ignore
@@ -423,16 +452,28 @@ func instanceConfig(ctx context.Context, data *NextDeployVmwareResourceModel) *b
 
 	tflog.Info(ctx, fmt.Sprintf("l1Networks : %+v", l1Networks))
 
-	cmReqDeviceInstance.Parameters.VSphereProperties = append(cmReqDeviceInstance.Parameters.VSphereProperties, bigipnextsdk.CMReqVsphereProperties{
-		NumCpus:               int(instanceModel.Cpu.ValueInt64()),
-		Memory:                int(instanceModel.Memory.ValueInt64()),
-		DatacenterName:        providerModel.DatacenterName.ValueString(),
-		ClusterName:           providerModel.ClusterName.ValueString(),
-		DatastoreName:         providerModel.DatastoreName.ValueString(),
-		ResourcePoolName:      providerModel.ResourcepoolName.ValueString(),
-		VsphereContentLibrary: providerModel.ContentLibrary.ValueString(),
-		VmTemplateName:        providerModel.TemplateName.ValueString(),
-	})
+	vSphereProperties := bigipnextsdk.CMReqVsphereProperties{}
+	vSphereProperties.NumCpus = int(instanceModel.Cpu.ValueInt64())
+	vSphereProperties.Memory = int(instanceModel.Memory.ValueInt64())
+	vSphereProperties.DatacenterName = providerModel.DatacenterName.ValueString()
+	vSphereProperties.ClusterName = providerModel.ClusterName.ValueString()
+	vSphereProperties.DatastoreName = providerModel.DatastoreName.ValueString()
+	vSphereProperties.ResourcePoolName = providerModel.ResourcepoolName.ValueString()
+	vSphereProperties.VsphereContentLibrary = providerModel.ContentLibrary.ValueString()
+	vSphereProperties.VmTemplateName = providerModel.TemplateName.ValueString()
+	cmReqDeviceInstance.Parameters.VSphereProperties = append(cmReqDeviceInstance.Parameters.VSphereProperties, vSphereProperties)
+
+	// cmReqDeviceInstance.Parameters.VSphereProperties = append(cmReqDeviceInstance.Parameters.VSphereProperties, bigipnextsdk.CMReqVsphereProperties{
+	// 	NumCpus:               int(instanceModel.Cpu.ValueInt64()),
+	// 	Memory:                int(instanceModel.Memory.ValueInt64()),
+	// 	DatacenterName:        providerModel.DatacenterName.ValueString(),
+	// 	ClusterName:           providerModel.ClusterName.ValueString(),
+	// 	DatastoreName:         providerModel.DatastoreName.ValueString(),
+	// 	ResourcePoolName:      providerModel.ResourcepoolName.ValueString(),
+	// 	VsphereContentLibrary: providerModel.ContentLibrary.ValueString(),
+	// 	VmTemplateName:        providerModel.TemplateName.ValueString(),
+	// })
+
 	cmReqDeviceInstance.Parameters.VsphereNetworkAdapterSettings = append(cmReqDeviceInstance.Parameters.VsphereNetworkAdapterSettings, bigipnextsdk.CMReqVsphereNetworkAdapterSettings{
 		MgmtNetworkName:           instanceModel.MgmtNetworkname.ValueString(),
 		InternalNetworkName:       instanceModel.InternalNetworkname.ValueString(),

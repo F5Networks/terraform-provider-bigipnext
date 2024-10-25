@@ -86,6 +86,7 @@ type CMReqVsphereProperties struct {
 	ClusterName           string `json:"cluster_name,omitempty"`
 	DatastoreName         string `json:"datastore_name,omitempty"`
 	ResourcePoolName      string `json:"resource_pool_name,omitempty"`
+	ResourcePoolId        string `json:"resource_pool_id,omitempty"`
 	VsphereContentLibrary string `json:"vsphere_content_library,omitempty"`
 	VmTemplateName        string `json:"vm_template_name,omitempty"`
 }
@@ -395,6 +396,60 @@ func (p *BigipNextCM) GetDeviceProviderIDByHostname(hostname string) (interface{
 	return nil, fmt.Errorf("failed to get ID for provider: %+v", hostname)
 }
 
+func (p *BigipNextCM) GetResourcePoolID(providerID, dataCenterName, clusterName, resourcePoolName string) ([]byte, error) {
+	providerUrl := fmt.Sprintf("%s/vsphere/%s/api?path=api/vcenter/datacenter", uriProviders, providerID)
+	respData, err := p.GetCMRequest(providerUrl)
+	if err != nil {
+		return nil, err
+	}
+	var mapDatacenter []interface{}
+	err = json.Unmarshal(respData, &mapDatacenter)
+	if err != nil {
+		return nil, err
+	}
+	for _, datacenter := range mapDatacenter {
+		if datacenter.(map[string]interface{})["name"].(string) == dataCenterName {
+			datacenterID := datacenter.(map[string]interface{})["datacenter_id"].(string)
+			providerUrl := fmt.Sprintf("%s/vsphere/%s/api?path=api/vcenter/cluster?datacenters=%s", uriProviders, providerID, datacenterID)
+			respData, err := p.GetCMRequest(providerUrl)
+			if err != nil {
+				return nil, err
+			}
+			var mapCluster []interface{}
+			err = json.Unmarshal(respData, &mapCluster)
+			if err != nil {
+				return nil, err
+			}
+			for _, cluster := range mapCluster {
+				if cluster.(map[string]interface{})["name"].(string) == clusterName {
+					clusterID := cluster.(map[string]interface{})["cluster_id"].(string)
+					providerUrl := fmt.Sprintf("%s/vsphere/%s/api?path=api/vcenter/resource-pool?clusters=%s", uriProviders, providerID, clusterID)
+					respData, err := p.GetCMRequest(providerUrl)
+					if err != nil {
+						return nil, err
+					}
+					var mapResourcePool []interface{}
+					err = json.Unmarshal(respData, &mapResourcePool)
+					if err != nil {
+						return nil, err
+					}
+					for _, resourcePool := range mapResourcePool {
+						if resourcePool.(map[string]interface{})["name"].(string) == resourcePoolName {
+							resourcePoolID := resourcePool.(map[string]interface{})["resource_pool_id"].(string)
+							return []byte(resourcePoolID), nil
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil, fmt.Errorf("failed to get ID for resource pool: %+v", resourcePoolName)
+
+	// [{\"name\":\"vSAN Cluster\",\"cluster_id\":\"domain-c8\"}]
+	// providerUrl := fmt.Sprintf("%s/vsphere/%s/api?path=api/vcenter/resource-pool?clusters=domain-c8", uriProviders, providerID)
+	// [{"name":"CM-Applications","resource_pool_id":"resgroup-10283"},{"name":"Infrastructure","resource_pool_id":"resgroup-2015"},{"name":"SPK-TEST","resource_pool_id":"resgroup-4008"},{"name":"Mbip-waf","resource_pool_id":"resgroup-4010"},{"name":"mbipauto_spk_team","resource_pool_id":"resgroup-4011"},{"name":"CNF-TEST","resource_pool_id":"resgroup-4014"},{"name":"Piecemakers","resource_pool_id":"resgroup-4016"},{"name":"BIG-IP-Next-License","resource_pool_id":"resgroup-4018"},{"name":"BIG-IP-Next-Platform","resource_pool_id":"resgroup-4025"},{"name":"Eternals-Mavericks","resource_pool_id":"resgroup-4029"},{"name":"LTM-CM-PDM","resource_pool_id":"resgroup-4030"},{"name":"Multiverse","resource_pool_id":"resgroup-4032"},{"name":"Prodigy","resource_pool_id":"resgroup-4033"},{"name":"SSLO","resource_pool_id":"resgroup-4035"},{"name":"Sunrisers","resource_pool_id":"resgroup-4036"},{"name":"Central-Manager","resource_pool_id":"resgroup-4039"},{"name":"CM Solution","resource_pool_id":"resgroup-4040"},{"name":"CM-Access","resource_pool_id":"resgroup-4041"},{"name":"CM-MBIP-Solution","resource_pool_id":"resgroup-4043"},{"name":"EQ","resource_pool_id":"resgroup-4045"},{"name":"INFRAANO","resource_pool_id":"resgroup-4047"},{"name":"MBIPMP_System","resource_pool_id":"resgroup-4049"},{"name":"Simplifiers","resource_pool_id":"resgroup-4053"},{"name":"CM Pipeline Pool","resource_pool_id":"resgroup-4055"},{"name":"Sales","resource_pool_id":"resgroup-4061"},{"name":"Simplifiers","resource_pool_id":"resgroup-4063"},{"name":"test","resource_pool_id":"resgroup-4064"},{"name":"SPK-DEV","resource_pool_id":"resgroup-4065"},{"name":"Journeys","resource_pool_id":"resgroup-4067"},{"name":"samurais","resource_pool_id":"resgroup-4069"},{"name":"Sparatans","resource_pool_id":"resgroup-4070"},{"name":"Synergy","resource_pool_id":"resgroup-4071"},{"name":"TestPoolDEV-DND","resource_pool_id":"resgroup-4073"},{"name":"XC-BIGIP-SaaS","resource_pool_id":"resgroup-4075"},{"name":"LooneyTunes","resource_pool_id":"resgroup-4077"},{"name":"Team-Cosmos","resource_pool_id":"resgroup-4078"},{"name":"Team-Jazz","resource_pool_id":"resgroup-4080"},{"name":"ESXI-1","resource_pool_id":"resgroup-5116"},{"name":"automation-test","resource_pool_id":"resgroup-5304"},{"name":"Automation-Pipeline-Traffic-Machines","resource_pool_id":"resgroup-6542"},{"name":"Koolminds","resource_pool_id":"resgroup-8411"},{"name":"Resources","resource_pool_id":"resgroup-9"}]
+}
+
 func (p *BigipNextCM) GetDeviceIdByHostname(deviceHostname string) (deviceId *string, err error) {
 	deviceUrl := fmt.Sprintf("%s?filter=hostname+eq+'%s'", uriInventory, deviceHostname)
 	f5osLogger.Info("[GetDeviceIdByHostname]", "URI Path", deviceUrl)
@@ -417,8 +472,8 @@ func (p *BigipNextCM) GetDeviceIdByHostname(deviceHostname string) (deviceId *st
 }
 
 func (p *BigipNextCM) PostDeviceInstance(config *CMReqDeviceInstance, timeout int) ([]byte, error) {
-	uriInstances := "/device/v1/instances"
-	instanceUrl := fmt.Sprintf("%s", uriInstances)
+	instanceUrl := "/device/v1/instances"
+	// instanceUrl := fmt.Sprintf("%s", uriInstances)
 	f5osLogger.Debug("[PostDeviceInstance]", "URI Path", instanceUrl)
 	f5osLogger.Debug("[PostDeviceInstance]", "Config", hclog.Fmt("%+v", config))
 	body, err := json.Marshal(config)
@@ -449,18 +504,53 @@ func (p *BigipNextCM) PostDeviceInstance(config *CMReqDeviceInstance, timeout in
 	return respData, nil
 }
 
+// https://<BIG-IP-Next-Central-Manager-IP-Address>/api/device/api/v1/spaces/default/instances/initialization/{instance_id}
+
+func (p *BigipNextCM) UpdateNextInstanceConfig(instanceID string, config *CMReqDeviceInstance, timeout int) ([]byte, error) {
+	instanceUrl := fmt.Sprintf("%s/%s%s/%s", p.Host, uriDefault, "/instances/initialization", instanceID)
+	f5osLogger.Debug("[UpdateNextInstanceConfig]", "URI Path", instanceUrl)
+	body, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[UpdateNextInstanceConfig]", "Config", hclog.Fmt("%+v", string(body)))
+	respData, err := p.doCMRequest("PATCH", instanceUrl, body)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Debug("[UpdateNextInstanceConfig]", "Data::", hclog.Fmt("%+v", string(respData)))
+	// return respData, nil
+	// {"_links":{"self":{"href":"/api/v1/spaces/default/instances/initialization/tasks/9d1a572a-6a28-4af2-a555-c61f77dbbb96"}},"path":"/api/v1/spaces/default/instances/initialization/tasks/9d1a572a-6a28-4af2-a555-c61f77dbbb96"}
+	respString := make(map[string]interface{})
+	err = json.Unmarshal(respData, &respString)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Debug("[UpdateNextInstanceConfig]", "Task Path", hclog.Fmt("%+v", respString["path"].(string)))
+	// split path string to get task id
+	taskId := strings.Split(respString["path"].(string), "/")
+	f5osLogger.Info("[UpdateNextInstanceConfig]", "Task Id", hclog.Fmt("%+v", taskId[len(taskId)-1]))
+	// get task status
+	taskData, err := p.GetDeviceInstanceTaskStatus(taskId[len(taskId)-1], timeout)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[UpdateNextInstanceConfig]", "Task Status", hclog.Fmt("%+v", taskData))
+	return respData, nil
+}
+
 // /v1/instances/tasks/deacca61-3162-4672-aac8-2d6bd2b69438
 // get device instance task status
 func (p *BigipNextCM) GetDeviceInstanceTaskStatus(taskID string, timeOut int) (map[string]interface{}, error) {
-	// taskData := &DeviceInstanceTaskStatus{}
 	taskData := make(map[string]interface{})
-	instanceUrl := fmt.Sprintf("%s%s", "/device/v1/instances/tasks/", taskID)
+	// "/api/v1/spaces/default/instances/initialization/tasks"
+	instanceUrl := fmt.Sprintf("%s%s%s%s", p.Host, uriDefault, "/instances/initialization/tasks/", taskID)
 	f5osLogger.Debug("[GetDeviceInstanceTaskStatus]", "URI Path", instanceUrl)
 	// var timeout time.Duration
 	timeout := time.Duration(timeOut) * time.Second
 	endtime := time.Now().Add(timeout)
 	for time.Now().Before(endtime) {
-		respData, err := p.GetCMRequest(instanceUrl)
+		respData, err := p.doCMRequest("GET", instanceUrl, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -705,4 +795,42 @@ func encodeUrl(urlName string) string {
 	// Encode the urlName
 	urlNameEncoded := url.QueryEscape(urlName)
 	return urlNameEncoded
+}
+
+// https://clouddocs.f5.com/api/v1/spaces/default/instances/onboarding-tasks
+// create Get call to get onboarding task status
+func (p *BigipNextCM) GetOnboardingTasks() ([]byte, error) {
+	uriOnboardingTasks := fmt.Sprintf("%s/%s", uriDiscoverInstance, "onboarding-tasks")
+	f5osLogger.Debug("[GetOnboardingTasks]", "URI Path", uriOnboardingTasks)
+	respData, err := p.GetCMRequest(uriOnboardingTasks)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Debug("[GetOnboardingTasks]", "Requested Onboarding Tasks:", hclog.Fmt("%+v", string(respData)))
+	return respData, nil
+}
+
+// https://<BIG-IP-Next-Central-Manager-IP-Address>/api/device/api/v1/spaces/default/instances/initialization/{instance_id}
+// create Get call to get onboarding task status
+func (p *BigipNextCM) GetInitializationTaskStatus(instanceId string) ([]byte, error) {
+	uriInitializationTask := fmt.Sprintf("%s/%s/%s/%s", p.Host, uriDefault, "instances/initialization", instanceId)
+	f5osLogger.Debug("[GetInitializationTaskStatus]", "URI Path", uriInitializationTask)
+	respData, err := p.doCMRequest("GET", uriInitializationTask, nil)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Debug("[GetInitializationTaskStatus]", "Requested Initialization Task:", hclog.Fmt("%+v", string(respData)))
+	return respData, nil
+}
+
+// https://clouddocs.f5.com/api/v1/spaces/default/instances/{instanceID}/interfaces
+func (p *BigipNextCM) GetDeviceInterfaces(instanceId string) ([]byte, error) {
+	uriInterfaces := fmt.Sprintf("%s/%s/%s", uriDiscoverInstance, instanceId, "interfaces")
+	f5osLogger.Debug("[GetDeviceInterfaces]", "URI Path", uriInterfaces)
+	respData, err := p.GetCMRequest(uriInterfaces)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Debug("[GetDeviceInterfaces]", "Requested Interfaces:", hclog.Fmt("%+v", string(respData)))
+	return respData, nil
 }

@@ -235,7 +235,7 @@ func getFastRequestDraft(ctx context.Context, data *NextCMFastHttpResourceModel)
 	vsLists := make([]types.Object, 0, len(data.Virtuals.Elements()))
 	data.Virtuals.ElementsAs(ctx, &vsLists, false)
 	for _, element := range vsLists {
-		var fastVS bigipnextsdk.VirtualServer
+		var fastVS bigipnextsdk.Virtual
 		var objectModel NextCMFastHttpVirtualModel
 		element.As(ctx, &objectModel, basetypes.ObjectAsOptions{})
 		fastVS.VirtualName = objectModel.VirtualName.ValueString()

@@ -92,7 +92,7 @@ Required:
 - `datacenter_name` (String) The vSphere datacenter to create the VMs
 - `datastore_name` (String) The vSphere datastore to create the VMs
 - `provider_name` (String) Name of provider to be used for deploying VMs
-- `resource_pool_name` (String) The vSphere resource pool to create the VMs
+- `resource_pool_name` (String) The vSphere resource pool name to create the VMs
 - `vm_template_name` (String) The vSphere VM template name to create the VMs
 
 

@@ -1,0 +1,63 @@
+{
+    "_embedded": {
+        "files": [
+            {
+                "_links": {
+                    "self": "/files/8d78bf05-6d6e-4c2d-85e5-7efb993e311f"
+                },
+                "description": "",
+                "fileName": "BIG-IP-Next-20.3.0-2.713.1.tgz.512.sig",
+                "hash": "9ede940707990b5e8f42c0aa954c6fd36c4e2d12caad786f1c46467ad368737e",
+                "id": "8d78bf05-6d6e-4c2d-85e5-7efb993e311f",
+                "name": "BIG-IP-Next-20.3.0-2.713.1.tgz.512.sig",
+                "size": 512,
+                "type": "GENERIC",
+                "uri": "file://opt/f5/mbip/subsystem/csm/shared/persisted/files/8d78bf05-6d6e-4c2d-85e5-7efb993e311f-8a525843-32c7-477a-871f-cd51fd021151"
+            },
+            {
+                "_links": {
+                    "self": "/files/ec512bae-7b1c-41ba-b1bd-00a16dea226b"
+                },
+                "description": "",
+                "fileName": "BIG-IP-Next-20.3.0-2.713.1.tgz",
+                "hash": "64ee3dba7dd76833f3471eace990ee3fef746404e4cb39c96fda170666490b25",
+                "id": "ec512bae-7b1c-41ba-b1bd-00a16dea226b",
+                "name": "BIG-IP-Next-20.3.0-2.713.1.tgz",
+                "size": 2654148531,
+                "type": "GENERIC",
+                "uri": "file://opt/f5/mbip/subsystem/csm/shared/persisted/files/ec512bae-7b1c-41ba-b1bd-00a16dea226b-64eb85e8-d26e-46a1-aff1-c9e241cec577"
+            },
+            {
+                "_links": {
+                    "self": "/files/641b8f80-cc6d-4e59-b597-5c6212dbe319"
+                },
+                "description": "",
+                "fileName": "BIG-IP-Next-20.2.1-2.430.2+0.0.48.tgz",
+                "hash": "b817165f726c1901237cfddc2060c14c69d7b16977628141d1b16c62d551bd48",
+                "id": "641b8f80-cc6d-4e59-b597-5c6212dbe319",
+                "name": "BIG-IP-Next-20.2.1-2.430.2+0.0.48.tgz",
+                "size": 2782220086,
+                "type": "GENERIC",
+                "uri": "file://opt/f5/mbip/subsystem/csm/shared/persisted/files/641b8f80-cc6d-4e59-b597-5c6212dbe319-c2cdcce7-590f-49dd-ab99-bd27503cd814"
+            },
+            {
+                "_links": {
+                    "self": "/files/305edca5-6f90-4ec4-a22c-caa351609b74"
+                },
+                "description": "",
+                "fileName": "BIG-IP-Next-20.2.1-2.430.2+0.0.48.tgz.512.sig",
+                "hash": "2f96f88c503873a8d0dcd1a2ea2f0d91140e21972dfcbd50f783b7614f33f84b",
+                "id": "305edca5-6f90-4ec4-a22c-caa351609b74",
+                "name": "BIG-IP-Next-20.2.1-2.430.2+0.0.48.tgz.512.sig",
+                "size": 512,
+                "type": "GENERIC",
+                "uri": "file://opt/f5/mbip/subsystem/csm/shared/persisted/files/305edca5-6f90-4ec4-a22c-caa351609b74-44ad1054-f525-488b-8468-00bfb38c763d"
+            }
+        ]
+    },
+    "_links": {
+        "self": "/files?"
+    },
+    "count": 4,
+    "total": 4
+}

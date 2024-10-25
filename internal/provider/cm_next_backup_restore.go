@@ -21,19 +21,19 @@ import (
 )
 
 var (
-	_ resource.Resource                = &NextCMBackupRestoreResource{}
-	_ resource.ResourceWithImportState = &NextCMBackupRestoreResource{}
+	_ resource.Resource                = &NextCMDeviceBackupRestoreResource{}
+	_ resource.ResourceWithImportState = &NextCMDeviceBackupRestoreResource{}
 )
 
-func NewNextCMBackupRestoreResource() resource.Resource {
-	return &NextCMBackupRestoreResource{}
+func NewNextCMDeviceBackupRestoreResource() resource.Resource {
+	return &NextCMDeviceBackupRestoreResource{}
 }
 
-type NextCMBackupRestoreResource struct {
+type NextCMDeviceBackupRestoreResource struct {
 	client *bigipnextsdk.BigipNextCM
 }
 
-type NextCMBackupRestoreResourceModel struct {
+type NextCMDeviceBackupRestoreResourceModel struct {
 	FileName       types.String `tfsdk:"file_name"`
 	Password       types.String `tfsdk:"backup_password"`
 	DeviceIp       types.String `tfsdk:"device_ip"`
@@ -45,11 +45,11 @@ type NextCMBackupRestoreResourceModel struct {
 	Timeout        types.Int64  `tfsdk:"timeout"`
 }
 
-func (r *NextCMBackupRestoreResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_cm_backup_restore"
+func (r *NextCMDeviceBackupRestoreResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_cm_device_backup_restore"
 }
 
-func (r *NextCMBackupRestoreResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *NextCMDeviceBackupRestoreResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Resource used to manage(CRUD) backup and restore of BIG-IP Next instances on BIG-IP CM.",
 		Attributes: map[string]schema.Attribute{
@@ -123,11 +123,11 @@ func (r *NextCMBackupRestoreResource) Schema(ctx context.Context, req resource.S
 	}
 }
 
-func (r *NextCMBackupRestoreResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *NextCMDeviceBackupRestoreResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	r.client, resp.Diagnostics = toBigipNextCMProvider(req.ProviderData)
 }
 
-func (r *NextCMBackupRestoreResource) GetDeviceId(data *NextCMBackupRestoreResourceModel) (deviceId *string, err error) {
+func (r *NextCMDeviceBackupRestoreResource) GetDeviceId(data *NextCMDeviceBackupRestoreResourceModel) (deviceId *string, err error) {
 	if data.DeviceIp.ValueString() == "" && data.DeviceHostname.ValueString() == "" { // coverage-ignore
 		return nil, fmt.Errorf("the 'device_ip' or 'device_hostname' parameter must be specified")
 	}
@@ -148,8 +148,8 @@ func (r *NextCMBackupRestoreResource) GetDeviceId(data *NextCMBackupRestoreResou
 	}
 }
 
-func (r *NextCMBackupRestoreResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data *NextCMBackupRestoreResourceModel
+func (r *NextCMDeviceBackupRestoreResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var data *NextCMDeviceBackupRestoreResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -190,8 +190,8 @@ func (r *NextCMBackupRestoreResource) Create(ctx context.Context, req resource.C
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *NextCMBackupRestoreResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) { // coverage-ignore
-	var data *NextCMBackupRestoreResourceModel
+func (r *NextCMDeviceBackupRestoreResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) { // coverage-ignore
+	var data *NextCMDeviceBackupRestoreResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -237,8 +237,8 @@ func (r *NextCMBackupRestoreResource) Update(ctx context.Context, req resource.U
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *NextCMBackupRestoreResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data *NextCMBackupRestoreResourceModel
+func (r *NextCMDeviceBackupRestoreResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var data *NextCMDeviceBackupRestoreResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -254,8 +254,8 @@ func (r *NextCMBackupRestoreResource) Delete(ctx context.Context, req resource.D
 	}
 }
 
-func (r *NextCMBackupRestoreResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data *NextCMBackupRestoreResourceModel
+func (r *NextCMDeviceBackupRestoreResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var data *NextCMDeviceBackupRestoreResourceModel
 
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
@@ -276,12 +276,12 @@ func (r *NextCMBackupRestoreResource) Read(ctx context.Context, req resource.Rea
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (r *NextCMBackupRestoreResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) { // coverage-ignore
+func (r *NextCMDeviceBackupRestoreResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) { // coverage-ignore
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func getCreateBackupRestoreConfig(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) *bigipnextsdk.BackupRestoreTenantRequest {
-	var data *NextCMBackupRestoreResourceModel
+	var data *NextCMDeviceBackupRestoreResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -299,7 +299,7 @@ func getCreateBackupRestoreConfig(ctx context.Context, req resource.CreateReques
 }
 
 func getUpdateBackupRestoreConfig(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) *bigipnextsdk.BackupRestoreTenantRequest { // coverage-ignore
-	var data *NextCMBackupRestoreResourceModel
+	var data *NextCMDeviceBackupRestoreResourceModel
 
 	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
@@ -310,14 +310,14 @@ func getUpdateBackupRestoreConfig(ctx context.Context, req resource.UpdateReques
 	return &config
 }
 
-func (r *NextCMBackupRestoreResource) backupResourceReadModelToState(ctx context.Context, respData *bigipnextsdk.TenantBackupFile, data *NextCMBackupRestoreResourceModel) {
+func (r *NextCMDeviceBackupRestoreResource) backupResourceReadModelToState(ctx context.Context, respData *bigipnextsdk.TenantBackupFile, data *NextCMDeviceBackupRestoreResourceModel) {
 	tflog.Info(ctx, fmt.Sprintf("backupResourceReadModelToState:%+v", respData))
 	data.FileName = types.StringValue(respData.FileName)
 	data.Id = types.StringValue(respData.InstanceId)
 	data.Backup = types.StringValue(respData.FileDate)
 }
 
-func (r *NextCMBackupRestoreResource) backupResourceModelToState(ctx context.Context, respData *bigipnextsdk.TenantBackupRestoreTaskStatus, data *NextCMBackupRestoreResourceModel) {
+func (r *NextCMDeviceBackupRestoreResource) backupResourceModelToState(ctx context.Context, respData *bigipnextsdk.TenantBackupRestoreTaskStatus, data *NextCMDeviceBackupRestoreResourceModel) {
 	tflog.Info(ctx, fmt.Sprintf("backupResourceModelToState:%+v", respData))
 	data.Id = types.StringValue(respData.InstanceId)
 	if data.Operation == types.StringValue("restore") {

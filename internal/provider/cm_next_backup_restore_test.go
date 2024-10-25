@@ -531,7 +531,7 @@ func TestUnitNextCMBackupUpdateResourceTC1(t *testing.T) {
 }
 
 const testAccNextCMBackupByIpResourceConfig = `
-resource "bigipnext_cm_backup_restore" "sample" {
+resource "bigipnext_cm_device_backup_restore" "sample" {
 	backup_password = "F5site02@123"
 	operation       = "backup"
 	file_name       = "test.tar.gz"
@@ -540,7 +540,7 @@ resource "bigipnext_cm_backup_restore" "sample" {
 `
 
 // const testAccNextCMBackupByIpUpdateResourceConfig = `
-// resource "bigipnext_cm_backup_restore" "sample" {
+// resource "bigipnext_cm_device_backup_restore" "sample" {
 // 	backup_password = "F5site02@1234"
 // 	operation       = "backup"
 // 	file_name       = "test.tar.gz"
@@ -549,7 +549,7 @@ resource "bigipnext_cm_backup_restore" "sample" {
 // `
 
 const testAccNextCMBackupByHostnameResourceConfig = `
-resource "bigipnext_cm_backup_restore" "sample" {
+resource "bigipnext_cm_device_backup_restore" "sample" {
 	backup_password = "F5site02@123"
 	operation       = "backup"
 	file_name       = "test.tar.gz"
@@ -558,7 +558,7 @@ resource "bigipnext_cm_backup_restore" "sample" {
 `
 
 const testAccNextCMRestoreByIpResourceConfig = `
-resource "bigipnext_cm_backup_restore" "sample" {
+resource "bigipnext_cm_device_backup_restore" "sample" {
 	backup_password = "F5site02@123"
 	operation       = "restore"
 	file_name       = "test.tar.gz"
@@ -567,7 +567,7 @@ resource "bigipnext_cm_backup_restore" "sample" {
 `
 
 const testAccNextCMRestoreByHostnameResourceConfig = `
-resource "bigipnext_cm_backup_restore" "sample" {
+resource "bigipnext_cm_device_backup_restore" "sample" {
 	backup_password = "F5site02@123"
 	operation       = "restore"
 	file_name       = "test.tar.gz"
