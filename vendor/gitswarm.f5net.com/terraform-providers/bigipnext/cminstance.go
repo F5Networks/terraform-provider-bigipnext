@@ -22,6 +22,7 @@ const (
 	uriDiscoverInstance = "/v1/spaces/default/instances"
 	uriLicense          = "/v1/spaces/default/instances/license"
 	// uriLicenseActivate  = "/v1/spaces/default/instances/license/activate"
+	// uriInstance                = "/v1/spaces/default/instances/initialization"
 )
 
 type DeviceInventoryList struct {
@@ -132,7 +133,7 @@ type CMReqDeviceInstance struct {
 		ManagementAddress             string                               `json:"management_address,omitempty"`
 		ManagementNetworkWidth        int                                  `json:"management_network_width,omitempty"`
 		DefaultGateway                string                               `json:"default_gateway,omitempty"`
-		L1Networks                    []CMReqL1Networks                    `json:"l1Networks,omitempty"`
+		L1Networks                    []CMReqL1Networks                    `json:"l1Networks"`
 		ManagementCredentialsUsername string                               `json:"management_credentials_username,omitempty"`
 		ManagementCredentialsPassword string                               `json:"management_credentials_password,omitempty"`
 		InstanceOneTimePassword       string                               `json:"instance_one_time_password,omitempty"`
@@ -190,6 +191,23 @@ func (p *BigipNextCM) GetDeviceIdByIp(deviceIp string) (deviceId *string, err er
 	return nil, fmt.Errorf("the requested device:%s, was not found", deviceIp)
 }
 
+// func (p *BigipNextCM) GetInstanceInfoByID(instanceId string) (interface{}, error) {
+// 	deviceUrl := fmt.Sprintf("%s/%s", uriInstance, instanceId)
+// 	url := fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, deviceUrl)
+// 	f5osLogger.Info("[GetInstanceInfoByID]", "Request path", hclog.Fmt("%+v", url))
+// 	dataResource, err := p.doCMRequest("GET", url, nil)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	f5osLogger.Info("[GetInstanceInfoByID]", "Data::", hclog.Fmt("%+v", string(dataResource)))
+// 	var instanceInfo interface{}
+// 	err = json.Unmarshal(dataResource, &instanceInfo)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return instanceInfo, nil
+// }
+
 func (p *BigipNextCM) GetDeviceInfoByIp(deviceIp string) (deviceInfo interface{}, err error) {
 	deviceUrl := fmt.Sprintf("%s?filter=address+eq+'%s'", uriInventory, deviceIp)
 	f5osLogger.Debug("[GetDeviceInfoByIp]", "URI Path", deviceUrl)
@@ -207,9 +225,16 @@ func (p *BigipNextCM) GetDeviceInfoByIp(deviceIp string) (deviceInfo interface{}
 	return nil, fmt.Errorf("the requested device:%s, was not found", deviceIp)
 }
 
-func (p *BigipNextCM) GetDeviceInfoByID(deviceId string) (interface{}, error) {
+func (p *BigipNextCM) GetDeviceInfoByID(deviceId string, params ...bool) (interface{}, error) {
 	// deviceUrl := fmt.Sprintf("%s/%s", uriInventory, deviceId)
-	deviceUrl := fmt.Sprintf("%s/%s", uriDiscoverInstance, deviceId)
+	deviceUrl := ""
+	f5osLogger.Info("[GetDeviceInfoByID]", "params", hclog.Fmt("%+v", params))
+	if len(params) > 0 && params[0] {
+		// onboard
+		deviceUrl = fmt.Sprintf("%s/%s/%s", uriDiscoverInstance, "initialization", deviceId)
+	} else {
+		deviceUrl = fmt.Sprintf("%s/%s", uriDiscoverInstance, deviceId)
+	}
 	url := fmt.Sprintf("%s%s%s", p.Host, uriCMRoot, deviceUrl)
 	f5osLogger.Info("[GetDeviceInfoByID]", "Request path", hclog.Fmt("%+v", url))
 	dataResource, err := p.doCMRequest("GET", url, nil)
@@ -504,6 +529,66 @@ func (p *BigipNextCM) PostDeviceInstance(config *CMReqDeviceInstance, timeout in
 	return respData, nil
 }
 
+func (p *BigipNextCM) PatchDeviceInstance(instanceID string, config *CMReqDeviceInstance, timeout int) (interface{}, error) {
+	instanceUrl := fmt.Sprintf("%s%s%s/%s", p.Host, uriDefault, "/instances/initialization", instanceID)
+	f5osLogger.Debug("[PatchDeviceInstance]", "URI Path", instanceUrl)
+	body, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[PatchDeviceInstance]", "Config", hclog.Fmt("%+v", string(body)))
+	respData, err := p.doCMRequest("PATCH", instanceUrl, body)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Debug("[PatchDeviceInstance]", "Data::", hclog.Fmt("%+v", string(respData)))
+	// return respData, nil
+	// {"_links":{"self":{"href":"/api/v1/spaces/default/instances/initialization/tasks/9d1a572a-6a28-4af2-a555-c61f77dbbb96"}},"path":"/api/v1/spaces/default/instances/initialization/tasks/9d1a572a-6a28-4af2-a555-c61f77dbbb96"}
+	respString := make(map[string]interface{})
+	err = json.Unmarshal(respData, &respString)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Debug("[PatchDeviceInstance]", "Task Path", hclog.Fmt("%+v", respString["path"].(string)))
+	// split path string to get task id
+	taskId := strings.Split(respString["path"].(string), "/")
+	f5osLogger.Info("[PatchDeviceInstance]", "Task Id", hclog.Fmt("%+v", taskId[len(taskId)-1]))
+	// get task status
+
+	// uriInstances := "/v1/spaces/default/instances/initialization"
+	// instanceUrl := fmt.Sprintf("%s/api%s/%s", p.Host, uriInstances, instanceId)
+	// f5osLogger.Debug("[PatchDeviceInstance]", "URI Path", instanceUrl)
+	// f5osLogger.Debug("[PatchDeviceInstance]", "Config", hclog.Fmt("%+v", config))
+	// body, err := json.Marshal(config)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// respData, err := p.doCMRequest("PATCH", instanceUrl, body)
+	// // respData, err := p.PostCMRequest(instanceUrl, body)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// f5osLogger.Debug("[PatchDeviceInstance]", "Data::", hclog.Fmt("%+v", string(respData)))
+	// respString := make(map[string]interface{})
+	// err = json.Unmarshal(respData, &respString)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// f5osLogger.Debug("[PatchDeviceInstance]", "Task Path", hclog.Fmt("%+v", respString["path"].(string)))
+	// // split path string to get task id
+	// taskId := strings.Split(respString["path"].(string), "/")
+	// f5osLogger.Info("[PatchDeviceInstance]", "Task Id", hclog.Fmt("%+v", taskId[len(taskId)-1]))
+	// // get task status
+	// uriTaskStatus := fmt.Sprintf("%s%s", uriInstances, "/tasks/")
+	taskData, err := p.GetDeviceInstanceTaskStatus(taskId[len(taskId)-1], timeout)
+	// p.GetDeviceInstanceTaskStatus(uriTaskStatus, taskId[len(taskId)-1], timeout)
+	if err != nil {
+		return nil, err
+	}
+	f5osLogger.Info("[PatchDeviceInstance]", "Task Status", hclog.Fmt("%+v", taskData))
+	return p.GetDeviceInfoByID(instanceID, true)
+}
+
 // https://<BIG-IP-Next-Central-Manager-IP-Address>/api/device/api/v1/spaces/default/instances/initialization/{instance_id}
 
 func (p *BigipNextCM) UpdateNextInstanceConfig(instanceID string, config *CMReqDeviceInstance, timeout int) ([]byte, error) {
@@ -536,6 +621,7 @@ func (p *BigipNextCM) UpdateNextInstanceConfig(instanceID string, config *CMReqD
 		return nil, err
 	}
 	f5osLogger.Info("[UpdateNextInstanceConfig]", "Task Status", hclog.Fmt("%+v", taskData))
+	// return p.GetDeviceInfoByID(instanceId)
 	return respData, nil
 }
 
