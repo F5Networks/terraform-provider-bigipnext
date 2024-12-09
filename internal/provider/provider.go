@@ -198,6 +198,7 @@ func (p *BigipNextCMProvider) Resources(ctx context.Context) []func() resource.R
 		NewCMNextLicenseActivateResource,
 		NewCMNextBootstrapResource,
 		NewCMNextUpgradeResource,
+		NewNextCMOnboardResource,
 	}
 }
 
