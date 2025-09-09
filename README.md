@@ -1,3 +1,6 @@
+**ARCHIVED:** This repository is archived due to: **Modernizing BIG-IP TMOS and discontinuing BIG-IP Next**.  
+For more information, see [K000152956] (https://my.f5.com/manage/s/article/K000152956)
+
 # Terraform Provider BIG-IP Next
 
 * BIG-IP Next Terraform provider helps you managing BIG-IP Next devices through BIG-IP Next Central Manager (CM) API.
